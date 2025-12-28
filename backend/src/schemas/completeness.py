@@ -1,6 +1,7 @@
 """Completeness dashboard schemas."""
-from pydantic import BaseModel, Field
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GapItem(BaseModel):
@@ -58,9 +59,8 @@ class CompletenessResponse(BaseModel):
         description="Aggregated list of all gaps"
     )
 
-    class Config:
-        """Pydantic model configuration."""
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "version_id": "123e4567-e89b-12d3-a456-426614174000",
                 "overall_score": 68.5,
@@ -111,4 +111,5 @@ class CompletenessResponse(BaseModel):
                     },
                 ],
             }
-        }
+        },
+    )

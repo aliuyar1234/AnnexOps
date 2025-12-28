@@ -4,9 +4,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
+from src.models.ai_system import AISystem
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.ai_system import AISystem
 
 
 @pytest.mark.asyncio
@@ -653,7 +653,6 @@ async def test_update_version_returns_200_with_updated_data(
     test_ai_system: AISystem,
 ):
     """PATCH /systems/{id}/versions/{vid} returns 200 with updated version data."""
-    from datetime import date
 
     token = create_access_token({"sub": str(test_editor_user.id)})
 
@@ -990,7 +989,7 @@ async def test_clone_version_returns_409_with_duplicate_label(
         label="source-v1",
         created_by=test_editor_user.id,
     )
-    version2 = await create_version(
+    await create_version(
         db=db,
         ai_system_id=test_ai_system.id,
         label="existing-label",

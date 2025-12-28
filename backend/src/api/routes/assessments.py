@@ -7,15 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.deps import get_current_user
 from src.core.database import get_db
 from src.models.user import User
-from src.schemas.assessment import (
-    WizardQuestions,
-    WizardQuestion,
-    AssessmentSubmission,
-    AssessmentResponse,
-)
 from src.schemas.ai_system import UserSummary
+from src.schemas.assessment import (
+    AssessmentResponse,
+    AssessmentSubmission,
+    WizardQuestion,
+    WizardQuestions,
+)
 from src.services.assessment_service import AssessmentService
-
 
 router = APIRouter()
 

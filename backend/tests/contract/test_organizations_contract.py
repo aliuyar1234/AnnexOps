@@ -6,14 +6,19 @@ for organization endpoints.
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.security import create_access_token
+from src.models.enums import UserRole
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.enums import UserRole
-from src.core.security import create_access_token
 
 
 @pytest.mark.asyncio
-async def test_create_organization_bootstrap_success(client: AsyncClient, db: AsyncSession):
+async def test_create_organization_bootstrap_success(
+    client: AsyncClient,
+    db: AsyncSession,
+    bootstrap_headers: dict[str, str],
+):
     """Test POST /organizations creates organization with admin user (bootstrap).
 
     Contract: POST /organizations
@@ -29,7 +34,7 @@ async def test_create_organization_bootstrap_success(client: AsyncClient, db: As
     }
 
     # Act
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
 
     # Assert
     assert response.status_code == 201
@@ -60,7 +65,8 @@ async def test_create_organization_bootstrap_success(client: AsyncClient, db: As
 async def test_create_organization_already_exists_fails(
     client: AsyncClient,
     db: AsyncSession,
-    test_org: Organization
+    test_org: Organization,
+    bootstrap_headers: dict[str, str],
 ):
     """Test POST /organizations fails when organization already exists.
 
@@ -75,7 +81,7 @@ async def test_create_organization_already_exists_fails(
     }
 
     # Act
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
 
     # Assert
     assert response.status_code == 409
@@ -84,14 +90,17 @@ async def test_create_organization_already_exists_fails(
 
 
 @pytest.mark.asyncio
-async def test_create_organization_validation_fails(client: AsyncClient):
+async def test_create_organization_validation_fails(
+    client: AsyncClient,
+    bootstrap_headers: dict[str, str],
+):
     """Test POST /organizations fails with invalid data.
 
     Contract: POST /organizations
     - Response: 400 for validation errors
     """
     # Test missing required fields
-    response = await client.post("/api/organizations", json={})
+    response = await client.post("/api/organizations", json={}, headers=bootstrap_headers)
     assert response.status_code == 422  # FastAPI validation error
 
     # Test invalid email
@@ -100,7 +109,7 @@ async def test_create_organization_validation_fails(client: AsyncClient):
         "admin_email": "not-an-email",
         "admin_password": "SecurePass123!"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 422
 
     # Test short password
@@ -109,7 +118,7 @@ async def test_create_organization_validation_fails(client: AsyncClient):
         "admin_email": "admin@test.com",
         "admin_password": "short"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 422
 
     # Test empty name
@@ -118,7 +127,7 @@ async def test_create_organization_validation_fails(client: AsyncClient):
         "admin_email": "admin@test.com",
         "admin_password": "SecurePass123!"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 422
 
 

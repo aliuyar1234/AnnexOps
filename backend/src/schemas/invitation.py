@@ -5,7 +5,7 @@ Schemas match the OpenAPI contract for invitation-related endpoints.
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from src.models.enums import UserRole
 
@@ -39,8 +39,7 @@ class InvitationResponse(BaseModel):
     token: str = Field(..., description="Invitation token (plaintext, for email)")
     expires_at: datetime = Field(..., description="Invitation expiry timestamp")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AcceptInviteRequest(BaseModel):
@@ -75,5 +74,4 @@ class AcceptInviteResponse(BaseModel):
     is_active: bool = Field(..., description="Account active status")
     created_at: datetime = Field(..., description="Account creation timestamp")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

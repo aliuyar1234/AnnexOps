@@ -1,6 +1,6 @@
 """Error response schemas matching OpenAPI specification."""
-from pydantic import BaseModel, Field
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ErrorResponse(BaseModel):
@@ -19,14 +19,14 @@ class ErrorResponse(BaseModel):
         description="Human-readable error message",
         examples=["Invalid email or password", "Account is temporarily locked"]
     )
-    details: Optional[dict] = Field(
+    details: dict | None = Field(
         None,
         description="Additional error context (field validation errors, etc.)",
         examples=[{"email": "Invalid email format"}]
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "error": "invalid_credentials",
@@ -45,4 +45,5 @@ class ErrorResponse(BaseModel):
                     }
                 }
             ]
-        }
+        },
+    )

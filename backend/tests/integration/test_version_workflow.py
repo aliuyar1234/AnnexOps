@@ -1,14 +1,14 @@
 """Integration tests for version status workflow."""
-import pytest
 from datetime import date
+
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
+from src.models.ai_system import AISystem
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.ai_system import AISystem
-from tests.conftest import create_version
 
 
 @pytest.mark.asyncio
@@ -247,8 +247,9 @@ async def test_approved_by_and_approved_at_set_on_approval(
 
     # Verify approved_by and approved_at are set by querying the version
     # We'll need to add these fields to the response schema
-    from src.models.system_version import SystemVersion
     from sqlalchemy import select
+
+    from src.models.system_version import SystemVersion
 
     query = select(SystemVersion).where(SystemVersion.id == version_id)
     result = await db.execute(query)
@@ -286,9 +287,10 @@ async def test_audit_log_created_for_status_change(
     )
 
     # Verify audit log entry exists
+    from sqlalchemy import select
+
     from src.models.audit_event import AuditEvent
     from src.models.enums import AuditAction
-    from sqlalchemy import select
 
     query = (
         select(AuditEvent)

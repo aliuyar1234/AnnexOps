@@ -1,5 +1,6 @@
 """Service for computing differences between system versions."""
-from typing import Any, Optional
+from typing import Any
+
 from deepdiff import DeepDiff
 
 from src.models.system_version import SystemVersion
@@ -20,7 +21,7 @@ class DiffService:
         """Initialize diff service."""
         pass
 
-    def _serialize_value(self, value: Any) -> Optional[str]:
+    def _serialize_value(self, value: Any) -> str | None:
         """Serialize a value to string for diff output.
 
         Args:

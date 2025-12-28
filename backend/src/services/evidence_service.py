@@ -54,7 +54,7 @@ class EvidenceService:
         file_size = type_metadata.get("file_size", 0)
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB",
             )
 
@@ -243,8 +243,8 @@ class EvidenceService:
             return None, 0, []
 
         # Get usage count and mapped versions
-        from src.models.system_version import SystemVersion
         from src.models.ai_system import AISystem
+        from src.models.system_version import SystemVersion
 
         # Query for mappings with version and system details
         mappings_query = (

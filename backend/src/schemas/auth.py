@@ -4,7 +4,8 @@ Schemas match the OpenAPI contract defined in specs/001-org-auth/contracts/opena
 """
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -59,8 +60,7 @@ class UserResponse(BaseModel):
     last_login_at: datetime | None = Field(None, description="Last login timestamp")
     created_at: datetime = Field(..., description="Account creation timestamp")
 
-    class Config:
-        from_attributes = True  # Pydantic v2 (was orm_mode in v1)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LogoutResponse(BaseModel):

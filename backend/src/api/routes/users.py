@@ -1,10 +1,11 @@
 """User management endpoints."""
-from typing import Optional
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.database import get_db
+
 from src.api.deps import get_current_user, require_admin
+from src.core.database import get_db
 from src.models.user import User
 from src.schemas.user import UserResponse, UserUpdateRequest
 from src.services.user_service import UserService
@@ -14,7 +15,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[UserResponse])
 async def list_users(
-    role: Optional[str] = None,
+    role: str | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -108,8 +109,9 @@ async def update_user(
         403: If non-admin tries to change role or is_active
         400: If trying to demote last admin
     """
-    from src.models.enums import UserRole
     from fastapi import HTTPException
+
+    from src.models.enums import UserRole
 
     # Check if trying to update role or is_active
     if update_data.role is not None or update_data.is_active is not None:

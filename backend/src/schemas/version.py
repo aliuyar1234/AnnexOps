@@ -1,6 +1,5 @@
 """Pydantic schemas for System Version endpoints."""
-from datetime import datetime, date
-from typing import Optional
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,7 +20,7 @@ class CreateVersionRequest(BaseModel):
     """Request schema for creating a system version."""
 
     label: str = Field(..., min_length=1, max_length=50)
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class VersionResponse(BaseModel):
@@ -33,9 +32,9 @@ class VersionResponse(BaseModel):
     ai_system_id: UUID
     label: str
     status: VersionStatus
-    release_date: Optional[date] = None
-    notes: Optional[str] = None
-    created_by: Optional[UserSummary] = None
+    release_date: date | None = None
+    notes: str | None = None
+    created_by: UserSummary | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -51,7 +50,7 @@ class StatusChangeRequest(BaseModel):
     """Request schema for changing version status."""
 
     status: VersionStatus
-    comment: Optional[str] = None
+    comment: str | None = None
 
 
 class VersionSummary(BaseModel):
@@ -68,8 +67,8 @@ class FieldChange(BaseModel):
     """Represents a single field change between versions."""
 
     field: str
-    old_value: Optional[str] = None
-    new_value: Optional[str] = None
+    old_value: str | None = None
+    new_value: str | None = None
 
 
 class DiffSummary(BaseModel):
@@ -92,8 +91,8 @@ class VersionDiffResponse(BaseModel):
 class UpdateVersionRequest(BaseModel):
     """Request schema for updating a system version."""
 
-    notes: Optional[str] = None
-    release_date: Optional[date] = None
+    notes: str | None = None
+    release_date: date | None = None
 
 
 class VersionDetailResponse(VersionResponse):

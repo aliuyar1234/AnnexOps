@@ -1,7 +1,9 @@
 """Audit service for logging administrative actions."""
-from typing import Optional, Any
+from typing import Any
 from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.models.audit_event import AuditEvent
 from src.models.enums import AuditAction
 
@@ -23,9 +25,9 @@ class AuditService:
         action: AuditAction,
         entity_type: str,
         entity_id: UUID,
-        user_id: Optional[UUID] = None,
-        diff_json: Optional[dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
+        user_id: UUID | None = None,
+        diff_json: dict[str, Any] | None = None,
+        ip_address: str | None = None,
     ) -> AuditEvent:
         """Create an audit log entry.
 
@@ -58,7 +60,7 @@ class AuditService:
         self,
         org_id: UUID,
         user_id: UUID,
-        ip_address: Optional[str] = None,
+        ip_address: str | None = None,
         success: bool = True,
     ) -> AuditEvent:
         """Log a user login attempt.
@@ -86,7 +88,7 @@ class AuditService:
         self,
         org_id: UUID,
         user_id: UUID,
-        ip_address: Optional[str] = None,
+        ip_address: str | None = None,
     ) -> AuditEvent:
         """Log a user logout.
 
@@ -110,7 +112,7 @@ class AuditService:
     async def log_organization_create(
         self,
         org_id: UUID,
-        user_id: Optional[UUID] = None,
+        user_id: UUID | None = None,
     ) -> AuditEvent:
         """Log organization creation.
 
@@ -133,7 +135,7 @@ class AuditService:
         self,
         org_id: UUID,
         user_id: UUID,
-        diff: Optional[dict[str, Any]] = None,
+        diff: dict[str, Any] | None = None,
     ) -> AuditEvent:
         """Log organization update.
 

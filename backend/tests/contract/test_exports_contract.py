@@ -55,7 +55,7 @@ async def test_list_exports_returns_200(
     await db.flush()
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -115,7 +115,7 @@ async def test_list_exports_pagination_works(
 
     # Test limit
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports?limit=2",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports?limit=2",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -127,7 +127,7 @@ async def test_list_exports_pagination_works(
 
     # Test offset
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports?offset=2",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports?offset=2",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -151,7 +151,7 @@ async def test_list_exports_returns_404_for_nonexistent_version(
 
     nonexistent_version_id = uuid4()
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{nonexistent_version_id}/exports",
+        f"/api/systems/{test_ai_system.id}/versions/{nonexistent_version_id}/exports",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -194,7 +194,7 @@ async def test_download_export_returns_302_redirect(
         mock_storage.return_value = mock_instance
 
         response = await client.get(
-            f"/api/v1/exports/{export.id}/download",
+            f"/api/exports/{export.id}/download",
             headers={"Authorization": f"Bearer {token}"},
             follow_redirects=False,
         )
@@ -214,7 +214,7 @@ async def test_download_export_returns_404_for_nonexistent_export(
 
     nonexistent_export_id = uuid4()
     response = await client.get(
-        f"/api/v1/exports/{nonexistent_export_id}/download",
+        f"/api/exports/{nonexistent_export_id}/download",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -247,7 +247,7 @@ async def test_create_export_with_diff_returns_201(
     )
     await db.flush()
 
-    token = create_access_token({"sub": str(test_editor_user.id)})        
+    token = create_access_token({"sub": str(test_editor_user.id)})
 
     # Mock storage service and docx generator
     with patch("src.services.export_service.get_storage_service") as mock_storage, \
@@ -261,7 +261,7 @@ async def test_create_export_with_diff_returns_201(
         mock_generate_docx.return_value = BytesIO(b"fake docx content")
 
         response = await client.post(
-            f"/api/v1/systems/{test_ai_system.id}/versions/{version2.id}/exports",
+            f"/api/systems/{test_ai_system.id}/versions/{version2.id}/exports",
             headers={"Authorization": f"Bearer {token}"},
             json={
                 "include_diff": True,

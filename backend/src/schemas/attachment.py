@@ -1,9 +1,8 @@
 """Pydantic schemas for attachment endpoints."""
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from src.schemas.ai_system import UserSummary
 
@@ -13,11 +12,10 @@ class AttachmentResponse(BaseModel):
 
     id: UUID
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     file_size: int
     mime_type: str
-    uploaded_by: Optional[UserSummary] = None
+    uploaded_by: UserSummary | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

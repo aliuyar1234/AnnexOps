@@ -2,15 +2,15 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, and_
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.exc import IntegrityError
 
-from src.models.evidence_mapping import EvidenceMapping
+from src.models.enums import AuditAction, MappingTargetType
 from src.models.evidence_item import EvidenceItem
+from src.models.evidence_mapping import EvidenceMapping
 from src.models.system_version import SystemVersion
-from src.models.enums import AuditAction, MappingTargetType, MappingStrength
 from src.models.user import User
 from src.schemas.mapping import CreateMappingRequest
 from src.services.audit_service import AuditService
@@ -94,12 +94,13 @@ class MappingService:
         try:
             await self.db.flush()
         except IntegrityError as e:
+            await self.db.rollback()
             # Check if unique constraint violation
             if "uq_evidence_version_target" in str(e):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"Evidence already mapped to {request.target_type.value}:{request.target_key}",
-                )
+                ) from None
             raise
 
         # Log audit event

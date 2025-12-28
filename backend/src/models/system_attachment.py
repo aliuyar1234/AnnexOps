@@ -1,5 +1,5 @@
 """System attachment model for file storage."""
-from sqlalchemy import Column, String, Text, BigInteger, ForeignKey, Index
+from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 

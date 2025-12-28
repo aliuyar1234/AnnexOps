@@ -39,23 +39,28 @@ AnnexOps helps HR-Tech providers and AI deployers build auditable evidence packs
 git clone https://github.com/aliuyar1234/AnnexOps.git
 cd AnnexOps
 
-# Start services
-docker-compose up -d
-
-# Run migrations
-cd backend
+# Configure environment (Docker Compose reads `.env` from repo root)
 cp .env.example .env
-alembic upgrade head
+# Fill required values in `.env` (POSTGRES_PASSWORD, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, JWT_SECRET, BOOTSTRAP_TOKEN)
 
-# Start API server
-uvicorn src.main:app --reload
+# Start services
+docker compose up -d
+
+# Run migrations (inside the API container)
+docker compose exec api alembic upgrade head
 ```
 
 ### API Documentation
 
 Once running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- Swagger UI: http://localhost:8000/api/docs
+- ReDoc: http://localhost:8000/api/redoc
+
+### Bootstrap (First Organization)
+
+Creating the first organization requires a bootstrap token:
+- Set `BOOTSTRAP_TOKEN`
+- Call `POST /api/organizations` with header `X-Bootstrap-Token: <BOOTSTRAP_TOKEN>`
 
 ## Project Structure
 
@@ -159,15 +164,19 @@ python -m pytest tests/ -v
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| ENVIRONMENT | Runtime mode (`development`/`production`) | `development` |
+| API_DOCS_ENABLED | Force-enable API docs (optional) | - |
+| BOOTSTRAP_TOKEN | Required for `POST /api/organizations` | - |
 | DATABASE_URL | PostgreSQL connection string | - |
 | JWT_SECRET | Secret for JWT signing | - |
-| JWT_ALGORITHM | JWT algorithm | HS256 |
-| ACCESS_TOKEN_EXPIRE_MINUTES | Access token TTL | 30 |
-| REFRESH_TOKEN_EXPIRE_DAYS | Refresh token TTL | 7 |
-| S3_ENDPOINT | MinIO/S3 endpoint | - |
-| S3_ACCESS_KEY | S3 access key | - |
-| S3_SECRET_KEY | S3 secret key | - |
-| S3_BUCKET | S3 bucket name | annexops |
+| JWT_ALGORITHM | JWT algorithm | `HS256` |
+| JWT_ACCESS_TOKEN_EXPIRE_MINUTES | Access token TTL (minutes) | `30` |
+| JWT_REFRESH_TOKEN_EXPIRE_DAYS | Refresh token TTL (days) | `7` |
+| MINIO_ENDPOINT | MinIO/S3 endpoint (`host:port`) | - |
+| MINIO_ACCESS_KEY | MinIO access key | - |
+| MINIO_SECRET_KEY | MinIO secret key | - |
+| MINIO_BUCKET | Bucket name | `annexops-attachments` |
+| MINIO_USE_SSL | Use SSL for MinIO | `false` |
 
 ## License
 

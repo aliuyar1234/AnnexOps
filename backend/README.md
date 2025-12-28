@@ -1,6 +1,6 @@
 # AnnexOps Backend
 
-FastAPI-based backend for AnnexOps organization and authentication module.
+FastAPI-based backend API for AnnexOps.
 
 ## Quick Start
 
@@ -8,7 +8,7 @@ FastAPI-based backend for AnnexOps organization and authentication module.
 
 ```bash
 # From repository root
-docker compose up -d postgres redis
+docker compose up -d postgres redis minio minio-init
 ```
 
 ### 2. Setup Python Environment
@@ -36,6 +36,7 @@ pip install -r requirements.txt
 cp .env.example .env
 
 # Edit .env and set JWT_SECRET to a secure random value
+# If you want to bootstrap the first organization, also set BOOTSTRAP_TOKEN
 ```
 
 ### 4. Run Migrations
@@ -125,9 +126,9 @@ backend/
 
 When the server is running:
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- OpenAPI JSON: http://localhost:8000/openapi.json
+- Swagger UI: http://localhost:8000/api/docs
+- ReDoc: http://localhost:8000/api/redoc
+- OpenAPI JSON: http://localhost:8000/api/openapi.json
 
 ## Environment Variables
 

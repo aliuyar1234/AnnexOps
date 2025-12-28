@@ -1,16 +1,14 @@
 """Unit tests for snapshot hash computation."""
 import json
-from datetime import datetime, date
+from datetime import date, datetime
 from uuid import uuid4
 
-import pytest
-
 from src.core.manifest import (
-    SystemManifest,
-    SystemInfo,
-    VersionInfo,
-    SectionData,
     EvidenceItem,
+    SectionData,
+    SystemInfo,
+    SystemManifest,
+    VersionInfo,
 )
 from src.services.snapshot_service import SnapshotService
 

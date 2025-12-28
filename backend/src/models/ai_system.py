@@ -1,11 +1,11 @@
 """AI System model for registering HR-AI systems."""
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.models.base import BaseModel
-from src.models.enums import HRUseCaseType, DeploymentType, DecisionInfluence
+from src.models.enums import DecisionInfluence, DeploymentType, HRUseCaseType
 
 
 class AISystem(BaseModel):

@@ -3,9 +3,10 @@
 Tests SHA-256 checksum computation and presigned URL generation.
 """
 import hashlib
-import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
+
+import pytest
 
 from src.services.storage_service import StorageService
 
@@ -133,7 +134,7 @@ class TestStorageService:
 
         # Mock the S3 response
         mock_response = {"Body": Mock()}
-        mock_response["Body"].read.return_value = file_content
+        mock_response["Body"].read.side_effect = [file_content, b""]
         storage_service.client._client.get_object.return_value = mock_response
 
         checksum = storage_service.compute_checksum(storage_uri)
@@ -148,7 +149,7 @@ class TestStorageService:
         storage_uri = "evidence/org-id/2025/12/file.pdf"
 
         mock_response = {"Body": Mock()}
-        mock_response["Body"].read.return_value = b"content"
+        mock_response["Body"].read.side_effect = [b"content", b""]
         storage_service.client._client.get_object.return_value = mock_response
 
         storage_service.compute_checksum(storage_uri)
@@ -164,13 +165,13 @@ class TestStorageService:
 
         # First call with content A
         mock_response1 = {"Body": Mock()}
-        mock_response1["Body"].read.return_value = b"Content A"
+        mock_response1["Body"].read.side_effect = [b"Content A", b""]
         storage_service.client._client.get_object.return_value = mock_response1
         checksum1 = storage_service.compute_checksum(storage_uri)
 
         # Second call with content B
         mock_response2 = {"Body": Mock()}
-        mock_response2["Body"].read.return_value = b"Content B"
+        mock_response2["Body"].read.side_effect = [b"Content B", b""]
         storage_service.client._client.get_object.return_value = mock_response2
         checksum2 = storage_service.compute_checksum(storage_uri)
 
@@ -283,7 +284,7 @@ class TestStorageServiceIntegration:
 
         # Step 4: Compute checksum
         mock_response = {"Body": Mock()}
-        mock_response["Body"].read.return_value = file_content
+        mock_response["Body"].read.side_effect = [file_content, b""]
         storage_service.client._client.get_object.return_value = mock_response
 
         checksum = storage_service.compute_checksum(storage_uri)

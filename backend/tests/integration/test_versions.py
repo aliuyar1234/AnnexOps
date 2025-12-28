@@ -1,12 +1,15 @@
 """Integration tests for version creation and listing."""
+from uuid import UUID
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
+from src.models.ai_system import AISystem
+from src.models.export import Export
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.ai_system import AISystem
 from tests.conftest import create_ai_system
 
 
@@ -590,6 +593,7 @@ async def test_version_update_creates_audit_log(
 ):
     """Test that version updates are logged in audit trail."""
     from sqlalchemy import select
+
     from src.models.audit_event import AuditEvent
     from src.models.enums import AuditAction
 
@@ -762,10 +766,6 @@ async def test_version_deletion_rejected_for_immutable_version(
     test_ai_system: AISystem,
 ):
     """Test that immutable versions cannot be deleted.
-
-    NOTE: For Phase 8, since exports table doesn't exist yet,
-    approved versions are still mutable. This test is a placeholder
-    for when exports are implemented in Module E.
     """
     token = create_access_token({"sub": str(test_admin_user.id)})
 
@@ -795,13 +795,23 @@ async def test_version_deletion_rejected_for_immutable_version(
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    # For now, this should succeed since exports don't exist
-    # When exports are implemented, this should return 409
+    export = Export(
+        version_id=UUID(version_id),
+        export_type="full",
+        snapshot_hash="0" * 64,
+        storage_uri="exports/test-export.zip",
+        file_size=123,
+        include_diff=False,
+        compare_version_id=None,
+        completeness_score=100.0,
+        created_by=test_admin_user.id,
+    )
+    db.add(export)
+    await db.commit()
+
     delete_response = await client.delete(
         f"/api/systems/{test_ai_system.id}/versions/{version_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    # Currently allows deletion (no exports)
-    # TODO: Change to assert 409 when exports table exists
-    assert delete_response.status_code == 204
+    assert delete_response.status_code == 409

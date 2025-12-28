@@ -1,9 +1,8 @@
 """Pydantic schemas for high-risk assessment endpoints."""
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.schemas.ai_system import UserSummary
 
@@ -35,7 +34,7 @@ class AssessmentSubmission(BaseModel):
     """Request schema for submitting an assessment."""
 
     answers: list[AnswerItem]
-    notes: Optional[str] = Field(None, max_length=2000)
+    notes: str | None = Field(None, max_length=2000)
 
 
 class AssessmentResponse(BaseModel):
@@ -44,11 +43,10 @@ class AssessmentResponse(BaseModel):
     id: UUID
     result_label: str
     score: int
-    notes: Optional[str] = None
+    notes: str | None = None
     checklist: list[str] = []
     disclaimer: str
-    created_by: Optional[UserSummary] = None
+    created_by: UserSummary | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

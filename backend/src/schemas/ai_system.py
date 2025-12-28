@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from src.models.enums import HRUseCaseType, DeploymentType, DecisionInfluence
+from src.models.enums import DecisionInfluence, DeploymentType, HRUseCaseType
 
 
 class UserSummary(BaseModel):
@@ -14,35 +14,34 @@ class UserSummary(BaseModel):
     id: UUID
     email: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateSystemRequest(BaseModel):
     """Request schema for creating an AI system."""
 
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
     hr_use_case_type: HRUseCaseType
     intended_purpose: str = Field(..., min_length=1)
     deployment_type: DeploymentType
     decision_influence: DecisionInfluence
-    contact_name: Optional[str] = Field(None, max_length=255)
-    contact_email: Optional[EmailStr] = None
+    contact_name: str | None = Field(None, max_length=255)
+    contact_email: EmailStr | None = None
 
 
 class UpdateSystemRequest(BaseModel):
     """Request schema for updating an AI system."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    hr_use_case_type: Optional[HRUseCaseType] = None
-    intended_purpose: Optional[str] = Field(None, min_length=1)
-    deployment_type: Optional[DeploymentType] = None
-    decision_influence: Optional[DecisionInfluence] = None
-    contact_name: Optional[str] = Field(None, max_length=255)
-    contact_email: Optional[EmailStr] = None
-    expected_version: Optional[int] = Field(
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
+    hr_use_case_type: HRUseCaseType | None = None
+    intended_purpose: str | None = Field(None, min_length=1)
+    deployment_type: DeploymentType | None = None
+    decision_influence: DecisionInfluence | None = None
+    contact_name: str | None = Field(None, max_length=255)
+    contact_email: EmailStr | None = None
+    expected_version: int | None = Field(
         None,
         description="For optimistic locking - must match current version",
     )
@@ -53,20 +52,19 @@ class SystemResponse(BaseModel):
 
     id: UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     hr_use_case_type: HRUseCaseType
     intended_purpose: str
     deployment_type: DeploymentType
     decision_influence: DecisionInfluence
-    owner: Optional[UserSummary] = None
-    contact_name: Optional[str] = None
-    contact_email: Optional[str] = None
+    owner: UserSummary | None = None
+    contact_name: str | None = None
+    contact_email: str | None = None
     version: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SystemDetailResponse(SystemResponse):
@@ -92,8 +90,7 @@ class AssessmentSummary(BaseModel):
     score: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Update forward reference

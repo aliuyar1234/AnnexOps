@@ -1,24 +1,44 @@
 """Pytest fixtures for testing."""
 import asyncio
-from typing import AsyncGenerator, Generator
+import os
+from collections.abc import AsyncGenerator, Generator
 from uuid import UUID
+
 import pytest
 import pytest_asyncio
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
 from httpx import ASGITransport, AsyncClient
-from src.main import app
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
+
+os.environ.setdefault("BOOTSTRAP_TOKEN", "test-bootstrap-token")
+
 from src.core.database import get_db
 from src.core.security import hash_password
-from src.models.base import Base
-from src.models.organization import Organization
-from src.models.user import User
-from src.models.enums import UserRole, HRUseCaseType, DeploymentType, DecisionInfluence, VersionStatus, EvidenceType, Classification, MappingTargetType, MappingStrength
+from src.main import app
 from src.models.ai_system import AISystem
-from src.models.system_version import SystemVersion
+from src.models.annex_section import AnnexSection
+from src.models.base import Base
+from src.models.enums import (
+    AnnexSectionKey,
+    Classification,
+    DecisionInfluence,
+    DeploymentType,
+    EvidenceType,
+    HRUseCaseType,
+    MappingStrength,
+    MappingTargetType,
+    UserRole,
+    VersionStatus,
+)
 from src.models.evidence_item import EvidenceItem
 from src.models.evidence_mapping import EvidenceMapping
+from src.models.export import Export
+from src.models.llm_interaction import LlmInteraction
+from src.models.log_api_key import LogApiKey
+from src.models.organization import Organization
+from src.models.system_version import SystemVersion
+from src.models.user import User
 
 # Test database URL (using port 5433 to avoid conflict with local postgres)
 TEST_DATABASE_URL = "postgresql+asyncpg://annexops:annexops@localhost:5433/annexops_test"
@@ -46,6 +66,11 @@ def event_loop() -> Generator:
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture()
+def bootstrap_headers() -> dict[str, str]:
+    return {"X-Bootstrap-Token": os.environ["BOOTSTRAP_TOKEN"]}
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -394,6 +419,92 @@ async def create_version(
 
 
 @pytest_asyncio.fixture
+async def test_log_api_key(db: AsyncSession, test_version: SystemVersion, test_editor_user: User) -> dict:
+    """Create a test log API key (returns both model and plaintext key)."""
+    import hashlib
+    import uuid
+
+    api_key = f"ak_test_{uuid.uuid4().hex}"
+    key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+
+    key = LogApiKey(
+        version_id=test_version.id,
+        key_hash=key_hash,
+        name="Test Ingest Key",
+        created_by=test_editor_user.id,
+    )
+    db.add(key)
+    await db.flush()
+
+    return {"api_key": api_key, "key": key}
+
+
+async def create_log_api_key(
+    db: AsyncSession,
+    version_id: UUID,
+    created_by: UUID,
+    name: str = "Test Key",
+    api_key: str | None = None,
+    revoked_at=None,
+) -> dict:
+    """LogApiKey factory for creating test keys (returns both model and plaintext)."""
+    import hashlib
+    import uuid
+
+    if api_key is None:
+        api_key = f"ak_test_{uuid.uuid4().hex}"
+
+    key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    key = LogApiKey(
+        version_id=version_id,
+        key_hash=key_hash,
+        name=name,
+        created_by=created_by,
+        revoked_at=revoked_at,
+    )
+    db.add(key)
+    await db.flush()
+    return {"api_key": api_key, "key": key}
+
+
+@pytest.fixture
+def sample_decision_event() -> dict:
+    """Sample decision event payload for ingestion tests."""
+    return {
+        "event_id": "evt_123456",
+        "event_time": "2025-12-25T10:00:00Z",
+        "actor": "hiring-assistant",
+        "subject": {
+            "subject_type": "candidate",
+            "subject_id_hash": "sha256:abc123",
+        },
+        "model": {
+            "model_id": "gpt-4",
+            "model_version": "0613",
+            "prompt_version": "v1",
+        },
+        "input": {
+            "input_hash": "sha256:def456",
+            "features_summary": {"education": "bachelor", "experience_years": 3},
+        },
+        "output": {
+            "decision": "recommend",
+            "score": 0.85,
+            "output_hash": "sha256:ghi789",
+        },
+        "human": {
+            "reviewer_id": "user_1",
+            "override": False,
+        },
+        "trace": {
+            "request_id": "req_123",
+            "latency_ms": 123,
+            "error": None,
+        },
+    }
+
+
+@pytest_asyncio.fixture
 async def test_evidence_item(
     db: AsyncSession,
     test_org: Organization,
@@ -547,7 +658,7 @@ async def test_annex_section(
     db: AsyncSession,
     test_version: SystemVersion,
     test_editor_user: User,
-) -> "AnnexSection":
+) -> AnnexSection:
     """Create a test annex section.
 
     Args:
@@ -558,8 +669,6 @@ async def test_annex_section(
     Returns:
         Test AnnexSection instance
     """
-    from src.models.annex_section import AnnexSection
-    from src.models.enums import AnnexSectionKey
     from decimal import Decimal
 
     section = AnnexSection(
@@ -590,7 +699,7 @@ async def create_annex_section(
     evidence_refs: list[UUID] | None = None,
     llm_assisted: bool = False,
     last_edited_by: UUID | None = None,
-) -> "AnnexSection":
+) -> AnnexSection:
     """Annex Section factory for creating test sections.
 
     Args:
@@ -606,7 +715,6 @@ async def create_annex_section(
     Returns:
         Created AnnexSection instance
     """
-    from src.models.annex_section import AnnexSection
     from decimal import Decimal
 
     if content is None:
@@ -633,7 +741,7 @@ async def test_export(
     db: AsyncSession,
     test_version: SystemVersion,
     test_editor_user: User,
-) -> "Export":
+) -> Export:
     """Create a test export.
 
     Args:
@@ -644,7 +752,6 @@ async def test_export(
     Returns:
         Test Export instance
     """
-    from src.models.export import Export
     from decimal import Decimal
 
     export = Export(
@@ -674,7 +781,7 @@ async def create_export(
     include_diff: bool = False,
     compare_version_id: UUID | None = None,
     completeness_score: float = 0.0,
-) -> "Export":
+) -> Export:
     """Export factory for creating test exports.
 
     Args:
@@ -692,7 +799,6 @@ async def create_export(
     Returns:
         Created Export instance
     """
-    from src.models.export import Export
     from decimal import Decimal
 
     export = Export(
@@ -709,3 +815,88 @@ async def create_export(
     db.add(export)
     await db.flush()
     return export
+
+
+@pytest_asyncio.fixture
+async def test_llm_interaction(
+    db: AsyncSession,
+    test_version: SystemVersion,
+    test_editor_user: User,
+) -> LlmInteraction:
+    """Create a test LLM interaction record."""
+    interaction = LlmInteraction(
+        version_id=test_version.id,
+        section_key="ANNEX4.GENERAL",
+        user_id=test_editor_user.id,
+        selected_evidence_ids=[],
+        prompt="Test prompt",
+        response="Test response [Evidence: 00000000-0000-0000-0000-000000000000]",
+        cited_evidence_ids=[],
+        model="claude-3-sonnet-20240229",
+        input_tokens=10,
+        output_tokens=20,
+        strict_mode=False,
+        duration_ms=5,
+    )
+    db.add(interaction)
+    await db.flush()
+    return interaction
+
+
+async def create_llm_interaction(
+    db: AsyncSession,
+    *,
+    version_id: UUID,
+    section_key: str,
+    user_id: UUID,
+    selected_evidence_ids: list[UUID] | None = None,
+    prompt: str = "Test prompt",
+    response: str = "Test response",
+    cited_evidence_ids: list[UUID] | None = None,
+    model: str = "claude-3-sonnet-20240229",
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    strict_mode: bool = False,
+    duration_ms: int = 0,
+) -> LlmInteraction:
+    """LLM Interaction factory for creating test interactions."""
+    if selected_evidence_ids is None:
+        selected_evidence_ids = []
+    if cited_evidence_ids is None:
+        cited_evidence_ids = []
+
+    interaction = LlmInteraction(
+        version_id=version_id,
+        section_key=section_key,
+        user_id=user_id,
+        selected_evidence_ids=selected_evidence_ids,
+        prompt=prompt,
+        response=response,
+        cited_evidence_ids=cited_evidence_ids,
+        model=model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        strict_mode=strict_mode,
+        duration_ms=duration_ms,
+    )
+    db.add(interaction)
+    await db.flush()
+    return interaction
+
+
+@pytest.fixture
+def mock_llm_generate_success():
+    """Mock LLM generation to avoid real provider calls."""
+    from unittest.mock import AsyncMock, patch
+
+    from src.services.llm_service import LlmCompletion
+
+    with patch("src.services.llm_service.LlmService.generate", new_callable=AsyncMock) as mock_generate:
+        mock_generate.return_value = LlmCompletion(
+            text="## Draft\n\nExample text [Evidence: 00000000-0000-0000-0000-000000000000]",
+            model="claude-3-sonnet-20240229",
+            input_tokens=100,
+            output_tokens=50,
+            duration_ms=10,
+        )
+        yield mock_generate

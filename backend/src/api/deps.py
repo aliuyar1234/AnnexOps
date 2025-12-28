@@ -1,14 +1,18 @@
 """FastAPI dependencies for authentication and authorization."""
-from typing import Callable
-from datetime import datetime, timezone
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+import hashlib
+from collections.abc import Callable
+from datetime import UTC, datetime
+
+from fastapi import Depends, Header, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.core.database import get_db
 from src.core.security import decode_token
-from src.models.user import User
 from src.models.enums import UserRole
+from src.models.log_api_key import LogApiKey
+from src.models.user import User
 
 # HTTP Bearer token security scheme
 security = HTTPBearer()
@@ -65,7 +69,7 @@ async def get_current_user(
         )
 
     # Check if account is locked
-    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+    if user.locked_until and user.locked_until > datetime.now(UTC):
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account is locked until {user.locked_until.isoformat()}",
@@ -144,3 +148,27 @@ def require_reviewer() -> Callable:
         FastAPI dependency function that requires REVIEWER, EDITOR, or ADMIN role
     """
     return require_role(UserRole.REVIEWER)
+
+
+async def get_log_api_key(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    db: AsyncSession = Depends(get_db),
+) -> LogApiKey:
+    """Authenticate requests using the X-API-Key header (Module F ingest)."""
+    if not x_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API key",
+        )
+
+    key_hash = hashlib.sha256(x_api_key.encode("utf-8")).hexdigest()
+    result = await db.execute(select(LogApiKey).where(LogApiKey.key_hash == key_hash))
+    key = result.scalar_one_or_none()
+
+    if not key or key.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or revoked API key",
+        )
+
+    return key

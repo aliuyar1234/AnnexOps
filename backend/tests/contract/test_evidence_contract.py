@@ -30,7 +30,7 @@ async def test_get_upload_url_returns_200(
         mock_storage.return_value = mock_instance
 
         response = await client.post(
-            "/api/v1/evidence/upload-url",
+            "/api/evidence/upload-url",
             json={
                 "filename": "test-document.pdf",
                 "mime_type": "application/pdf",
@@ -58,7 +58,7 @@ async def test_get_upload_url_returns_415_for_unsupported_mime_type(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence/upload-url",
+        "/api/evidence/upload-url",
         json={
             "filename": "malware.exe",
             "mime_type": "application/x-msdownload",
@@ -96,7 +96,7 @@ async def test_create_evidence_upload_returns_201(
         mock_storage.return_value = mock_instance
 
         response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "upload",
                 "title": "Risk Assessment Document",
@@ -134,7 +134,7 @@ async def test_create_evidence_url_returns_201(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "GDPR Compliance Guide",
@@ -169,7 +169,7 @@ async def test_create_evidence_url_with_optional_accessed_at(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Security Documentation",
@@ -197,7 +197,7 @@ async def test_create_evidence_url_returns_422_for_invalid_url(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Invalid URL",
@@ -222,7 +222,7 @@ async def test_create_evidence_url_returns_422_for_missing_url(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Missing URL",
@@ -247,7 +247,7 @@ async def test_create_evidence_git_returns_201(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Model Training Implementation",
@@ -285,7 +285,7 @@ async def test_create_evidence_git_with_optional_fields(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Code Snapshot",
@@ -316,7 +316,7 @@ async def test_create_evidence_git_returns_422_for_invalid_commit_hash(
 
     # Too short commit hash
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Invalid Commit",
@@ -342,7 +342,7 @@ async def test_create_evidence_git_returns_422_for_non_hex_commit_hash(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Invalid Commit Hash",
@@ -368,7 +368,7 @@ async def test_create_evidence_git_returns_422_for_missing_repo_url(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Missing Repo",
@@ -393,7 +393,7 @@ async def test_create_evidence_git_returns_422_for_missing_commit_hash(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Missing Commit",
@@ -418,7 +418,7 @@ async def test_create_evidence_note_returns_201(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Meeting Minutes",
@@ -451,7 +451,7 @@ async def test_create_evidence_returns_422_for_invalid_metadata(
 
     # Missing 'content' field for note type
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Incomplete Note",
@@ -487,7 +487,7 @@ async def test_create_evidence_returns_413_for_large_file(
         mock_storage.return_value = mock_instance
 
         response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "upload",
                 "title": "Large File",
@@ -529,7 +529,7 @@ async def test_create_evidence_returns_415_for_unsupported_mime_type(
         mock_storage.return_value = mock_instance
 
         response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "upload",
                 "title": "Malware",
@@ -558,7 +558,7 @@ async def test_list_evidence_returns_200(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -585,7 +585,7 @@ async def test_get_evidence_returns_200_with_details(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.get(
-        f"/api/v1/evidence/{test_evidence_item.id}",
+        f"/api/evidence/{test_evidence_item.id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -618,7 +618,7 @@ async def test_delete_evidence_returns_204(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.delete(
-        f"/api/v1/evidence/{test_evidence_item.id}",
+        f"/api/evidence/{test_evidence_item.id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -636,7 +636,7 @@ async def test_create_evidence_returns_403_for_viewer(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Test Note",
@@ -660,7 +660,7 @@ async def test_list_evidence_with_search_returns_200(
 
     # Create evidence items with different content
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Risk Assessment Report",
@@ -671,7 +671,7 @@ async def test_list_evidence_with_search_returns_200(
     )
 
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Compliance Guide",
@@ -683,7 +683,7 @@ async def test_list_evidence_with_search_returns_200(
 
     # Search for "risk"
     response = await client.get(
-        "/api/v1/evidence?search=risk",
+        "/api/evidence?search=risk",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -710,7 +710,7 @@ async def test_list_evidence_with_tag_filter_returns_200(
 
     # Create evidence with different tags
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Evidence 1",
@@ -721,7 +721,7 @@ async def test_list_evidence_with_tag_filter_returns_200(
     )
 
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Evidence 2",
@@ -732,7 +732,7 @@ async def test_list_evidence_with_tag_filter_returns_200(
     )
 
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Evidence 3",
@@ -744,7 +744,7 @@ async def test_list_evidence_with_tag_filter_returns_200(
 
     # Filter by single tag "compliance"
     response = await client.get(
-        "/api/v1/evidence?tags=compliance",
+        "/api/evidence?tags=compliance",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -755,7 +755,7 @@ async def test_list_evidence_with_tag_filter_returns_200(
 
     # Filter by multiple tags (must have ALL)
     response = await client.get(
-        "/api/v1/evidence?tags=compliance&tags=gdpr",
+        "/api/evidence?tags=compliance&tags=gdpr",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -792,7 +792,7 @@ async def test_download_evidence_returns_302_for_upload_type(
         mock_storage.return_value = mock_instance
 
         response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "upload",
                 "title": "Test Download",
@@ -816,7 +816,7 @@ async def test_download_evidence_returns_302_for_upload_type(
         mock_storage.return_value = mock_instance
 
         response = await client.get(
-            f"/api/v1/evidence/{evidence_id}/download",
+            f"/api/evidence/{evidence_id}/download",
             headers={"Authorization": f"Bearer {token}"},
             follow_redirects=False,
         )
@@ -837,7 +837,7 @@ async def test_download_evidence_returns_400_for_non_upload_type(
 
     # Create note type evidence
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Test Note",
@@ -850,7 +850,7 @@ async def test_download_evidence_returns_400_for_non_upload_type(
 
     # Try to download
     response = await client.get(
-        f"/api/v1/evidence/{evidence_id}/download",
+        f"/api/evidence/{evidence_id}/download",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -870,7 +870,7 @@ async def test_update_evidence_returns_200(
 
     # Create evidence
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Original Title",
@@ -886,7 +886,7 @@ async def test_update_evidence_returns_200(
 
     # Update evidence
     response = await client.patch(
-        f"/api/v1/evidence/{evidence_id}",
+        f"/api/evidence/{evidence_id}",
         json={
             "title": "Updated Title",
             "description": "Updated description",
@@ -918,7 +918,7 @@ async def test_update_evidence_partial_update(
 
     # Create evidence
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Original Title",
@@ -933,7 +933,7 @@ async def test_update_evidence_partial_update(
 
     # Update only title
     response = await client.patch(
-        f"/api/v1/evidence/{evidence_id}",
+        f"/api/evidence/{evidence_id}",
         json={"title": "New Title Only"},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -957,7 +957,7 @@ async def test_update_evidence_returns_403_for_viewer(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.patch(
-        f"/api/v1/evidence/{test_evidence_item.id}",
+        f"/api/evidence/{test_evidence_item.id}",
         json={"title": "Unauthorized Update"},
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -978,7 +978,7 @@ async def test_delete_evidence_returns_409_when_has_mappings_without_force(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.delete(
-        f"/api/v1/evidence/{test_evidence_item.id}",
+        f"/api/evidence/{test_evidence_item.id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -1000,7 +1000,7 @@ async def test_delete_evidence_with_force_returns_204(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.delete(
-        f"/api/v1/evidence/{test_evidence_item.id}?force=true",
+        f"/api/evidence/{test_evidence_item.id}?force=true",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -1008,7 +1008,7 @@ async def test_delete_evidence_with_force_returns_204(
 
     # Verify evidence is deleted
     response = await client.get(
-        f"/api/v1/evidence/{test_evidence_item.id}",
+        f"/api/evidence/{test_evidence_item.id}",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 404
@@ -1026,7 +1026,7 @@ async def test_delete_evidence_without_mappings_returns_204(
 
     # Create evidence without mappings
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "To be deleted",
@@ -1039,7 +1039,7 @@ async def test_delete_evidence_without_mappings_returns_204(
 
     # Delete without force (should work since no mappings)
     response = await client.delete(
-        f"/api/v1/evidence/{evidence_id}",
+        f"/api/evidence/{evidence_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 

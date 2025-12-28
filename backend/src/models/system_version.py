@@ -1,5 +1,5 @@
 """System Version model for AI system versioning."""
-from sqlalchemy import Column, String, Text, Date, ForeignKey, Index
+from sqlalchemy import Column, Date, ForeignKey, Index, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

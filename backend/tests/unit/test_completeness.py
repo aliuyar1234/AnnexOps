@@ -1,7 +1,5 @@
 """Unit tests for completeness calculation logic."""
-import pytest
-from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 
 def test_section_score_formula_only_fields():

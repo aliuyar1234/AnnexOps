@@ -1,10 +1,9 @@
 """Unit tests for diff service."""
-import pytest
 from uuid import uuid4
 
-from src.services.diff_service import DiffService
-from src.models.system_version import SystemVersion
 from src.models.enums import VersionStatus
+from src.models.system_version import SystemVersion
+from src.services.diff_service import DiffService
 
 
 def test_diff_service_computes_field_changes():

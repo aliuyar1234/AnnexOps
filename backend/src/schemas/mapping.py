@@ -1,11 +1,10 @@
 """Pydantic schemas for evidence mapping endpoints."""
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from src.models.enums import MappingTargetType, MappingStrength
+from src.models.enums import MappingStrength, MappingTargetType
 from src.schemas.evidence import EvidenceResponse
 
 
@@ -15,8 +14,8 @@ class CreateMappingRequest(BaseModel):
     evidence_id: UUID = Field(..., description="Evidence item to map")
     target_type: MappingTargetType = Field(..., description="Target type (section/field/requirement)")
     target_key: str = Field(..., min_length=1, max_length=100, description="Target key (e.g., 'ANNEX4.RISK_MANAGEMENT')")
-    strength: Optional[MappingStrength] = Field(None, description="Mapping strength (weak/medium/strong)")
-    notes: Optional[str] = Field(None, description="Mapping rationale and notes")
+    strength: MappingStrength | None = Field(None, description="Mapping strength (weak/medium/strong)")
+    notes: str | None = Field(None, description="Mapping rationale and notes")
 
 
 class MappingResponse(BaseModel):
@@ -27,13 +26,12 @@ class MappingResponse(BaseModel):
     version_id: UUID
     target_type: MappingTargetType
     target_key: str
-    strength: Optional[MappingStrength] = None
-    notes: Optional[str] = None
+    strength: MappingStrength | None = None
+    notes: str | None = None
     created_by: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MappingWithEvidence(BaseModel):
@@ -44,11 +42,10 @@ class MappingWithEvidence(BaseModel):
     version_id: UUID
     target_type: MappingTargetType
     target_key: str
-    strength: Optional[MappingStrength] = None
-    notes: Optional[str] = None
+    strength: MappingStrength | None = None
+    notes: str | None = None
     created_by: UUID
     created_at: datetime
     evidence: EvidenceResponse
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

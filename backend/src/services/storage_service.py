@@ -1,10 +1,7 @@
 """Storage service for evidence file management with presigned URLs."""
 import hashlib
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
-
-from botocore.exceptions import ClientError
 
 from src.core.storage import get_storage_client
 
@@ -35,7 +32,7 @@ class StorageService:
             Tuple of (storage_uri, extension)
             Format: evidence/{org_id}/{yyyy}/{mm}/{uuid}.{ext}
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         file_id = uuid4()
 
         # Extract extension
@@ -119,9 +116,22 @@ class StorageService:
             Key=storage_uri,
         )
 
-        # Compute checksum
-        content = response["Body"].read()
-        checksum = hashlib.sha256(content).hexdigest()
+        # Compute checksum without loading the whole file into memory
+        checksum_hasher = hashlib.sha256()
+        body = response["Body"]
+        try:
+            while True:
+                chunk = body.read(1024 * 1024)
+                if not chunk:
+                    break
+                checksum_hasher.update(chunk)
+        finally:
+            try:
+                body.close()
+            except Exception:
+                pass
+
+        checksum = checksum_hasher.hexdigest()
 
         return checksum
 

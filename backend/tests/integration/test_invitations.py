@@ -3,7 +3,7 @@
 Tests the complete invitation lifecycle: create, accept, and login
 with proper validation, expiry, and audit logging.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -60,8 +60,8 @@ class TestInvitationFlow:
         assert invitation is not None
         assert invitation.role == UserRole.EDITOR
         assert invitation.accepted_at is None
-        assert invitation.expires_at > datetime.now(timezone.utc)
-        assert (invitation.expires_at - datetime.now(timezone.utc)).days == 6  # ~7 days
+        assert invitation.expires_at > datetime.now(UTC)
+        assert (invitation.expires_at - datetime.now(UTC)).days == 6  # ~7 days
 
         # Verify audit event for invitation creation
         result = await db.execute(
@@ -275,7 +275,7 @@ class TestInvitationFlow:
             role=UserRole.EDITOR,
             token_hash=token_hash,
             invited_by=test_admin_user.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1)  # Expired 1 day ago
+            expires_at=datetime.now(UTC) - timedelta(days=1)  # Expired 1 day ago
         )
         db.add(expired_invitation)
         await db.flush()

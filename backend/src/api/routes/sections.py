@@ -9,13 +9,12 @@ from src.core.database import get_db
 from src.models.enums import UserRole
 from src.models.user import User
 from src.schemas.section import (
+    SectionListResponse,
     SectionResponse,
     UpdateSectionRequest,
-    SectionListResponse,
 )
-from src.services.section_service import SectionService
 from src.services.completeness_service import SECTION_TITLES
-
+from src.services.section_service import SectionService
 
 router = APIRouter()
 

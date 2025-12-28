@@ -1,4 +1,5 @@
 """Integration tests for export operations."""
+from datetime import UTC
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
@@ -34,9 +35,9 @@ async def test_export_history_listing_workflow(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     # Create multiple exports at different times
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     export1 = Export(
         version_id=test_version.id,
         export_type="full",
@@ -69,7 +70,7 @@ async def test_export_history_listing_workflow(
 
     # List exports
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -139,7 +140,7 @@ async def test_export_download_workflow(
 
         # Request download
         response = await client.get(
-            f"/api/v1/exports/{export.id}/download",
+            f"/api/exports/{export.id}/download",
             headers={"Authorization": f"Bearer {token}"},
             follow_redirects=False,
         )
@@ -194,7 +195,7 @@ async def test_export_listing_with_pagination(
 
     # Test limit
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports?limit=2",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports?limit=2",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -207,7 +208,7 @@ async def test_export_listing_with_pagination(
 
     # Test offset
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports?offset=3",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports?offset=3",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -219,7 +220,7 @@ async def test_export_listing_with_pagination(
 
     # Test limit + offset
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports?limit=2&offset=1",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports?limit=2&offset=1",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -247,10 +248,9 @@ async def test_export_access_control(
     1. Users can only access exports for their own organization
     2. Attempting to access other org's exports returns 404
     """
-    from tests.conftest import create_user, create_ai_system, create_version
-
     # Create another org and user
     from src.models.organization import Organization as OrgModel
+    from tests.conftest import create_ai_system, create_user, create_version
 
     other_org = OrgModel(name="Other Organization")
     db.add(other_org)
@@ -270,7 +270,7 @@ async def test_export_access_control(
         name="Other System",
         owner_user_id=other_user.id,
     )
-    other_version = await create_version(
+    await create_version(
         db,
         ai_system_id=other_system.id,
         label="1.0.0",
@@ -296,7 +296,7 @@ async def test_export_access_control(
     other_token = create_access_token({"sub": str(other_user.id)})
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/exports",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/exports",
         headers={"Authorization": f"Bearer {other_token}"},
     )
 
@@ -304,7 +304,7 @@ async def test_export_access_control(
 
     # Other user tries to download test org's export
     response = await client.get(
-        f"/api/v1/exports/{test_export.id}/download",
+        f"/api/exports/{test_export.id}/download",
         headers={"Authorization": f"Bearer {other_token}"},
     )
 
@@ -363,7 +363,7 @@ async def test_diff_export_generation_workflow(
 
         # Request diff export
         response = await client.post(
-            f"/api/v1/systems/{test_ai_system.id}/versions/{version2.id}/exports",
+            f"/api/systems/{test_ai_system.id}/versions/{version2.id}/exports",
             headers={"Authorization": f"Bearer {token}"},
             json={
                 "include_diff": True,

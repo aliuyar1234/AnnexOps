@@ -1,10 +1,12 @@
 """Security utilities for password hashing and JWT token management."""
-from datetime import datetime, timedelta, timezone
-from typing import Optional
 import re
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
 import bcrypt
-from jose import jwt, JWTError
+import jwt
+from jwt import exceptions as jwt_exceptions
+
 from src.core.config import get_settings
 
 settings = get_settings()
@@ -14,7 +16,7 @@ _COMMON_PASSWORDS_FILE = Path(__file__).parent / "common_passwords.txt"
 _COMMON_PASSWORDS = set()
 
 if _COMMON_PASSWORDS_FILE.exists():
-    with open(_COMMON_PASSWORDS_FILE, 'r', encoding='utf-8') as f:
+    with open(_COMMON_PASSWORDS_FILE, encoding='utf-8') as f:
         _COMMON_PASSWORDS = {line.strip().lower() for line in f if line.strip()}
 
 
@@ -91,7 +93,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token.
 
     Args:
@@ -103,9 +105,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.jwt_access_token_expire_minutes
         )
     to_encode.update({"exp": expire})
@@ -127,7 +129,7 @@ def create_refresh_token(data: dict) -> str:
         Encoded JWT token string
     """
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_refresh_token_expire_days)
+    expire = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(
         to_encode,
@@ -137,7 +139,7 @@ def create_refresh_token(data: dict) -> str:
     return encoded_jwt
 
 
-def decode_token(token: str) -> Optional[dict]:
+def decode_token(token: str) -> dict | None:
     """Decode and validate a JWT token.
 
     Args:
@@ -153,5 +155,5 @@ def decode_token(token: str) -> Optional[dict]:
             algorithms=[settings.jwt_algorithm]
         )
         return payload
-    except JWTError:
+    except jwt_exceptions.PyJWTError:
         return None

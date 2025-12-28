@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 from src.models.enums import Classification, EvidenceType
 
@@ -142,8 +142,7 @@ class EvidenceResponse(BaseModel):
     usage_count: int | None = Field(None, description="Number of mappings referencing this evidence (only populated when listing)")
     duplicate_of: UUID | None = Field(None, description="ID of evidence with same checksum (duplicate warning)")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UploadUrlRequest(BaseModel):
@@ -178,8 +177,7 @@ class VersionSummary(BaseModel):
     system_id: UUID
     system_name: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EvidenceDetailResponse(EvidenceResponse):
@@ -194,8 +192,7 @@ class EvidenceDetailResponse(EvidenceResponse):
         description="System versions this evidence is mapped to"
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UpdateEvidenceRequest(BaseModel):

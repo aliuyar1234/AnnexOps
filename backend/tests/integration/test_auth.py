@@ -4,15 +4,16 @@ Tests the complete authentication flow including login, logout,
 token refresh, and account lockout mechanisms.
 """
 import asyncio
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from src.models.user import User
-from src.models.organization import Organization
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.models.audit_event import AuditEvent
 from src.models.enums import AuditAction
+from src.models.user import User
 
 
 @pytest.mark.asyncio
@@ -48,7 +49,7 @@ class TestLoginFlow:
         # Verify user's last_login_at is updated
         await db.refresh(test_admin_user)
         assert test_admin_user.last_login_at is not None
-        assert (datetime.now(timezone.utc) - test_admin_user.last_login_at).seconds < 10
+        assert (datetime.now(UTC) - test_admin_user.last_login_at).seconds < 10
 
         # Verify failed login attempts are reset
         assert test_admin_user.failed_login_attempts == 0
@@ -138,7 +139,7 @@ class TestAccountLockout:
     ):
         """Test account is locked after 5 failed login attempts."""
         # Make 5 failed login attempts
-        for i in range(5):
+        for _ in range(5):
             response = await client.post(
                 "/api/auth/login",
                 json={
@@ -152,7 +153,7 @@ class TestAccountLockout:
         await db.refresh(test_admin_user)
         assert test_admin_user.failed_login_attempts == 5
         assert test_admin_user.locked_until is not None
-        assert test_admin_user.locked_until > datetime.now(timezone.utc)
+        assert test_admin_user.locked_until > datetime.now(UTC)
 
         # Attempt login with correct password (should be locked)
         response = await client.post(
@@ -195,7 +196,7 @@ class TestAccountLockout:
         assert first_lockout is not None
 
         # Duration should be ~1 minute for first lockout
-        lockout_duration = (first_lockout - datetime.now(timezone.utc)).total_seconds()
+        lockout_duration = (first_lockout - datetime.now(UTC)).total_seconds()
         assert 55 < lockout_duration < 70  # ~1 minute with some tolerance
 
         # Unlock account and lock again
@@ -215,7 +216,7 @@ class TestAccountLockout:
         assert second_lockout is not None
 
         # Duration should be ~2 minutes for second lockout
-        lockout_duration = (second_lockout - datetime.now(timezone.utc)).total_seconds()
+        lockout_duration = (second_lockout - datetime.now(UTC)).total_seconds()
         assert 115 < lockout_duration < 130  # ~2 minutes
 
     async def test_successful_login_resets_failure_counter(
@@ -257,7 +258,7 @@ class TestAccountLockout:
     ):
         """Test account is unlocked after lockout duration expires."""
         # Set locked_until to past time
-        test_admin_user.locked_until = datetime.now(timezone.utc) - timedelta(minutes=1)
+        test_admin_user.locked_until = datetime.now(UTC) - timedelta(minutes=1)
         test_admin_user.failed_login_attempts = 5
         await db.flush()
 
@@ -299,10 +300,8 @@ class TestTokenRefresh:
         await asyncio.sleep(1)
 
         # Refresh token
-        refresh_response = await client.post(
-            "/api/auth/refresh",
-            cookies={"refresh_token": refresh_token}
-        )
+        client.cookies.set("refresh_token", refresh_token)
+        refresh_response = await client.post("/api/auth/refresh")
 
         assert refresh_response.status_code == 200
         new_access_token = refresh_response.json()["access_token"]
@@ -322,10 +321,8 @@ class TestTokenRefresh:
         client: AsyncClient
     ):
         """Test refresh with invalid token is rejected."""
-        response = await client.post(
-            "/api/auth/refresh",
-            cookies={"refresh_token": "invalid_token"}
-        )
+        client.cookies.set("refresh_token", "invalid_token")
+        response = await client.post("/api/auth/refresh")
         assert response.status_code == 401
 
 

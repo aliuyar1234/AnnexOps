@@ -1,27 +1,25 @@
 """Service layer for export operations."""
 import csv
-import hashlib
 import io
 import json
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.storage import get_storage_client
 from src.models.ai_system import AISystem
 from src.models.annex_section import AnnexSection
-from src.models.evidence_item import EvidenceItem
+from src.models.enums import AuditAction
 from src.models.evidence_mapping import EvidenceMapping
 from src.models.export import Export
 from src.models.system_version import SystemVersion
 from src.models.user import User
-from src.models.enums import AuditAction
 from src.services.audit_service import AuditService
 from src.services.completeness_service import get_completeness_report
 from src.services.docx_generator import generate_annex_iv_document
@@ -315,7 +313,7 @@ class ExportService:
         completeness_data = {
             "version_id": str(version_id),
             "overall_score": float(completeness.overall_score),
-            "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat() + "Z",
             "sections": [
                 {
                     "section_key": s.section_key,
@@ -375,7 +373,6 @@ class ExportService:
 
         # Upload to MinIO
         storage_client = get_storage_client()
-        now = datetime.now(timezone.utc)
         export_id = uuid4()
         storage_uri = f"exports/{org_id}/{ai_system.id}/{version_id}/{export_id}.zip"
 
@@ -474,7 +471,7 @@ class ExportService:
         return {
             "version_id": str(version_id),
             "compare_version_id": str(compare_version_id),
-            "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat() + "Z",
             "section_changes": section_changes,
             "evidence_changes": {
                 "added": sorted(added_evidence),

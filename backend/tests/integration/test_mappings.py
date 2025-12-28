@@ -1,15 +1,14 @@
 """Integration tests for evidence mapping functionality."""
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.organization import Organization
-from src.models.user import User
-from src.models.ai_system import AISystem
-from src.models.system_version import SystemVersion
+from src.models.enums import EvidenceType, MappingStrength, MappingTargetType
 from src.models.evidence_item import EvidenceItem
 from src.models.evidence_mapping import EvidenceMapping
-from src.models.enums import MappingTargetType, MappingStrength, EvidenceType, Classification
+from src.models.organization import Organization
+from src.models.system_version import SystemVersion
+from src.models.user import User
 from src.schemas.mapping import CreateMappingRequest
 from src.services.mapping_service import MappingService
 from tests.conftest import create_evidence_item, create_evidence_mapping
@@ -347,6 +346,7 @@ async def test_delete_mapping_not_found(
 ):
     """Test deleting nonexistent mapping raises 404."""
     from uuid import uuid4
+
     from fastapi import HTTPException
 
     service = MappingService(db)
@@ -371,7 +371,7 @@ async def test_mapping_query_respects_organization_boundaries(
 ):
     """Test that mappings respect organization boundaries."""
     from src.models.enums import UserRole
-    from tests.conftest import create_user, create_ai_system, create_version, create_evidence_item
+    from tests.conftest import create_ai_system, create_user, create_version
 
     # Create second organization with its own data
     org2 = Organization(name="Other Organization")

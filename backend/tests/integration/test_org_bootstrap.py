@@ -6,17 +6,22 @@ authenticate and perform administrative actions.
 """
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.security import create_access_token, verify_password
+from src.models.audit_event import AuditEvent
+from src.models.enums import AuditAction, UserRole
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.audit_event import AuditEvent
-from src.models.enums import UserRole, AuditAction
-from src.core.security import verify_password, create_access_token
 
 
 @pytest.mark.asyncio
-async def test_bootstrap_organization_complete_flow(client: AsyncClient, db: AsyncSession):
+async def test_bootstrap_organization_complete_flow(
+    client: AsyncClient,
+    db: AsyncSession,
+    bootstrap_headers: dict[str, str],
+):
     """Test complete bootstrap flow: create org, verify admin, test login.
 
     Flow:
@@ -32,7 +37,7 @@ async def test_bootstrap_organization_complete_flow(client: AsyncClient, db: Asy
         "admin_email": "admin@bootstrap.com",
         "admin_password": "AdminPass123!"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 201
 
     org_data = response.json()
@@ -94,7 +99,8 @@ async def test_bootstrap_organization_complete_flow(client: AsyncClient, db: Asy
 async def test_bootstrap_prevents_second_organization(
     client: AsyncClient,
     db: AsyncSession,
-    test_org: Organization
+    test_org: Organization,
+    bootstrap_headers: dict[str, str],
 ):
     """Test that bootstrap fails when an organization already exists.
 
@@ -106,7 +112,7 @@ async def test_bootstrap_prevents_second_organization(
         "admin_email": "admin@second.com",
         "admin_password": "AdminPass123!"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
 
     # Should fail with 409 Conflict
     assert response.status_code == 409
@@ -122,7 +128,8 @@ async def test_bootstrap_prevents_second_organization(
 @pytest.mark.asyncio
 async def test_bootstrap_creates_admin_user_with_correct_role(
     client: AsyncClient,
-    db: AsyncSession
+    db: AsyncSession,
+    bootstrap_headers: dict[str, str],
 ):
     """Test that bootstrap creates admin user with ADMIN role, not lower roles."""
     payload = {
@@ -130,7 +137,7 @@ async def test_bootstrap_creates_admin_user_with_correct_role(
         "admin_email": "admin@roletest.com",
         "admin_password": "AdminPass123!"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 201
 
     org_id = response.json()["id"]
@@ -146,14 +153,18 @@ async def test_bootstrap_creates_admin_user_with_correct_role(
 
 
 @pytest.mark.asyncio
-async def test_bootstrap_password_hashing(client: AsyncClient, db: AsyncSession):
+async def test_bootstrap_password_hashing(
+    client: AsyncClient,
+    db: AsyncSession,
+    bootstrap_headers: dict[str, str],
+):
     """Test that admin password is properly hashed, not stored in plaintext."""
     payload = {
         "name": "Security Test Corp",
         "admin_email": "admin@sectest.com",
         "admin_password": "PlaintextPassword123!"
     }
-    response = await client.post("/api/organizations", json=payload)
+    response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 201
 
     org_id = response.json()["id"]
@@ -212,7 +223,11 @@ async def test_update_organization_creates_audit_log(
 
 
 @pytest.mark.asyncio
-async def test_organization_unique_name_constraint(client: AsyncClient, db: AsyncSession):
+async def test_organization_unique_name_constraint(
+    client: AsyncClient,
+    db: AsyncSession,
+    bootstrap_headers: dict[str, str],
+):
     """Test that organization names must be unique."""
     # Create first organization
     payload1 = {
@@ -220,7 +235,7 @@ async def test_organization_unique_name_constraint(client: AsyncClient, db: Asyn
         "admin_email": "admin1@unique.com",
         "admin_password": "AdminPass123!"
     }
-    response1 = await client.post("/api/organizations", json=payload1)
+    response1 = await client.post("/api/organizations", json=payload1, headers=bootstrap_headers)
     assert response1.status_code == 201
 
     # Clean up first org to test the constraint in a second bootstrap attempt
@@ -237,7 +252,7 @@ async def test_organization_unique_name_constraint(client: AsyncClient, db: Asyn
         "admin_email": "admin2@unique.com",
         "admin_password": "AdminPass123!"
     }
-    response2 = await client.post("/api/organizations", json=payload2)
+    response2 = await client.post("/api/organizations", json=payload2, headers=bootstrap_headers)
 
     # Should succeed since we deleted the first org, but demonstrates name uniqueness
     assert response2.status_code == 201

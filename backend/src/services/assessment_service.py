@@ -6,19 +6,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.ai_system import AISystem
-from src.models.high_risk_assessment import HighRiskAssessment
-from src.models.enums import AssessmentResult, AuditAction
-from src.models.user import User
-from src.schemas.assessment import AssessmentSubmission
 from src.core.wizard_questions import (
+    ASSESSMENT_DISCLAIMER,
     WIZARD_QUESTIONS,
     WIZARD_VERSION,
-    ASSESSMENT_DISCLAIMER,
     calculate_score,
-    get_result_label,
     get_checklist,
+    get_result_label,
 )
+from src.models.ai_system import AISystem
+from src.models.enums import AssessmentResult, AuditAction
+from src.models.high_risk_assessment import HighRiskAssessment
+from src.models.user import User
+from src.schemas.assessment import AssessmentSubmission
 from src.services.audit_service import AuditService
 
 

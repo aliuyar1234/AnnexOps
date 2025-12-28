@@ -1,14 +1,14 @@
 """Integration tests for version error handling (404 and validation)."""
-import pytest
 from uuid import uuid4
+
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
+from src.models.ai_system import AISystem
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.ai_system import AISystem
-from src.models.system_version import SystemVersion
 from tests.conftest import create_ai_system, create_version
 
 
