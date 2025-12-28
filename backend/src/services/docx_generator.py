@@ -1,4 +1,5 @@
 """DOCX generator service for Annex IV documentation."""
+
 from datetime import UTC, datetime
 from io import BytesIO
 from typing import Any
@@ -92,7 +93,7 @@ def generate_annex_iv_document(
     # System information
     doc.add_heading("System Information", level=1)
     info_table = doc.add_table(rows=4, cols=2)
-    info_table.style = 'Light Grid Accent 1'
+    info_table.style = "Light Grid Accent 1"
 
     info_table.rows[0].cells[0].text = "System Name"
     info_table.rows[0].cells[1].text = system_info.get("name", "")
@@ -133,14 +134,14 @@ def generate_annex_iv_document(
         if content:
             # Create table with field names and values
             field_table = doc.add_table(rows=len(content), cols=2)
-            field_table.style = 'Light List Accent 1'
+            field_table.style = "Light List Accent 1"
 
             # Sort content keys for deterministic ordering
             for idx, (field_name, field_value) in enumerate(sorted(content.items())):
                 field_table.rows[idx].cells[0].text = _format_field_name(field_name)
                 field_table.rows[idx].cells[1].text = _format_field_value(field_value)
         else:
-            doc.add_paragraph("No content provided for this section.", style='Italic')
+            doc.add_paragraph("No content provided for this section.", style="Italic")
 
         doc.add_paragraph()  # Spacer
 
@@ -150,7 +151,7 @@ def generate_annex_iv_document(
 
             # Create evidence table
             ev_table = doc.add_table(rows=len(evidence_refs) + 1, cols=3)
-            ev_table.style = 'Light Grid Accent 1'
+            ev_table.style = "Light Grid Accent 1"
 
             # Header row
             ev_table.rows[0].cells[0].text = "ID"
@@ -177,7 +178,7 @@ def generate_annex_iv_document(
 
         # Create full evidence index table
         idx_table = doc.add_table(rows=len(evidence_items) + 1, cols=3)
-        idx_table.style = 'Light Grid Accent 1'
+        idx_table.style = "Light Grid Accent 1"
 
         # Header row
         idx_table.rows[0].cells[0].text = "Evidence ID"

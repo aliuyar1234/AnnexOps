@@ -58,4 +58,3 @@ class LogDetailResponse(BaseModel):
     actor: str
     ingested_at: datetime
     event_json: dict[str, Any]
-

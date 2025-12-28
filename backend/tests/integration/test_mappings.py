@@ -1,4 +1,5 @@
 """Integration tests for evidence mapping functionality."""
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,6 +80,7 @@ async def test_create_mapping_enforces_unique_constraint(
     )
 
     from fastapi import HTTPException
+
     with pytest.raises(HTTPException) as exc_info:
         await service.create(
             version_id=test_version.id,

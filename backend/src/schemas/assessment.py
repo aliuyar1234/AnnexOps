@@ -1,4 +1,5 @@
 """Pydantic schemas for high-risk assessment endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 

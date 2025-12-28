@@ -1,4 +1,5 @@
 """Service for managing Annex IV sections."""
+
 from decimal import Decimal
 from uuid import UUID
 
@@ -204,17 +205,14 @@ class SectionService:
             )
 
         # Check immutability: approved versions with exports cannot be edited
-        version_query = (
-            select(SystemVersion)
-            .where(SystemVersion.id == version_id)
-        )
+        version_query = select(SystemVersion).where(SystemVersion.id == version_id)
         version_result = await self.db.execute(version_query)
         version = version_result.scalar_one_or_none()
 
         if version and version.status == VersionStatus.APPROVED:
             # Check if version has any exports
-            export_count_query = select(func.count()).select_from(Export).where(
-                Export.version_id == version_id
+            export_count_query = (
+                select(func.count()).select_from(Export).where(Export.version_id == version_id)
             )
             export_result = await self.db.execute(export_count_query)
             export_count = export_result.scalar_one()

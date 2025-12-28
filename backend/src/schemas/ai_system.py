@@ -1,4 +1,5 @@
 """Pydantic schemas for AI System endpoints."""
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID

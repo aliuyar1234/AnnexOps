@@ -1,4 +1,5 @@
 """Integration tests for export operations."""
+
 from datetime import UTC
 from decimal import Decimal
 from unittest.mock import Mock, patch
@@ -350,8 +351,10 @@ async def test_diff_export_generation_workflow(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     # Mock storage service and docx generator
-    with patch("src.services.export_service.get_storage_client") as mock_get_storage_client, \
-         patch("src.services.export_service.generate_annex_iv_document") as mock_generate_docx:
+    with (
+        patch("src.services.export_service.get_storage_client") as mock_get_storage_client,
+        patch("src.services.export_service.generate_annex_iv_document") as mock_generate_docx,
+    ):
         mock_storage_client = Mock()
         mock_storage_client._bucket = "test-bucket"
         mock_storage_client._client = Mock()

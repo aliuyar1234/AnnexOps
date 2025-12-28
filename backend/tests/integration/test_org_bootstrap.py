@@ -4,6 +4,7 @@ Tests the complete end-to-end flow of creating the first organization
 with an admin user, verifying audit logs, and ensuring the admin can
 authenticate and perform administrative actions.
 """
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -35,7 +36,7 @@ async def test_bootstrap_organization_complete_flow(
     payload = {
         "name": "Bootstrap Corp",
         "admin_email": "admin@bootstrap.com",
-        "admin_password": "AdminPass123!"
+        "admin_password": "AdminPass123!",
     }
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 201
@@ -45,18 +46,13 @@ async def test_bootstrap_organization_complete_flow(
     assert org_data["name"] == "Bootstrap Corp"
 
     # Step 2: Verify organization exists in database
-    result = await db.execute(
-        select(Organization).where(Organization.id == org_id)
-    )
+    result = await db.execute(select(Organization).where(Organization.id == org_id))
     org = result.scalar_one()
     assert org.name == "Bootstrap Corp"
 
     # Step 3: Verify admin user was created
     result = await db.execute(
-        select(User).where(
-            User.org_id == org.id,
-            User.email == "admin@bootstrap.com"
-        )
+        select(User).where(User.org_id == org.id, User.email == "admin@bootstrap.com")
     )
     admin_user = result.scalar_one()
     assert admin_user.role == UserRole.ADMIN
@@ -75,9 +71,7 @@ async def test_bootstrap_organization_complete_flow(
     # Update organization name (admin only)
     update_payload = {"name": "Bootstrap Corp Updated"}
     response = await client.patch(
-        f"/api/organizations/{org_id}",
-        headers=headers,
-        json=update_payload
+        f"/api/organizations/{org_id}", headers=headers, json=update_payload
     )
     assert response.status_code == 200
     assert response.json()["name"] == "Bootstrap Corp Updated"
@@ -85,8 +79,7 @@ async def test_bootstrap_organization_complete_flow(
     # Step 5: Verify audit log was created
     result = await db.execute(
         select(AuditEvent).where(
-            AuditEvent.org_id == org.id,
-            AuditEvent.action == AuditAction.ORG_CREATE
+            AuditEvent.org_id == org.id, AuditEvent.action == AuditAction.ORG_CREATE
         )
     )
     audit_event = result.scalar_one_or_none()
@@ -110,7 +103,7 @@ async def test_bootstrap_prevents_second_organization(
     payload = {
         "name": "Second Corp",
         "admin_email": "admin@second.com",
-        "admin_password": "AdminPass123!"
+        "admin_password": "AdminPass123!",
     }
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
 
@@ -135,7 +128,7 @@ async def test_bootstrap_creates_admin_user_with_correct_role(
     payload = {
         "name": "Role Test Corp",
         "admin_email": "admin@roletest.com",
-        "admin_password": "AdminPass123!"
+        "admin_password": "AdminPass123!",
     }
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 201
@@ -143,9 +136,7 @@ async def test_bootstrap_creates_admin_user_with_correct_role(
     org_id = response.json()["id"]
 
     # Verify admin user has ADMIN role
-    result = await db.execute(
-        select(User).where(User.org_id == org_id)
-    )
+    result = await db.execute(select(User).where(User.org_id == org_id))
     users = result.scalars().all()
     assert len(users) == 1
     assert users[0].role == UserRole.ADMIN
@@ -162,7 +153,7 @@ async def test_bootstrap_password_hashing(
     payload = {
         "name": "Security Test Corp",
         "admin_email": "admin@sectest.com",
-        "admin_password": "PlaintextPassword123!"
+        "admin_password": "PlaintextPassword123!",
     }
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 201
@@ -170,9 +161,7 @@ async def test_bootstrap_password_hashing(
     org_id = response.json()["id"]
 
     # Retrieve admin user
-    result = await db.execute(
-        select(User).where(User.org_id == org_id)
-    )
+    result = await db.execute(select(User).where(User.org_id == org_id))
     admin_user = result.scalar_one()
 
     # Password should be hashed (not plaintext)
@@ -187,10 +176,7 @@ async def test_bootstrap_password_hashing(
 
 @pytest.mark.asyncio
 async def test_update_organization_creates_audit_log(
-    client: AsyncClient,
-    db: AsyncSession,
-    test_org: Organization,
-    test_admin_user: User
+    client: AsyncClient, db: AsyncSession, test_org: Organization, test_admin_user: User
 ):
     """Test that updating an organization creates an audit log entry."""
     # Arrange
@@ -200,9 +186,7 @@ async def test_update_organization_creates_audit_log(
     # Act: Update organization
     payload = {"name": "Audit Test Updated"}
     response = await client.patch(
-        f"/api/organizations/{test_org.id}",
-        headers=headers,
-        json=payload
+        f"/api/organizations/{test_org.id}", headers=headers, json=payload
     )
     assert response.status_code == 200
 
@@ -211,7 +195,7 @@ async def test_update_organization_creates_audit_log(
         select(AuditEvent).where(
             AuditEvent.org_id == test_org.id,
             AuditEvent.action == AuditAction.ORG_UPDATE,
-            AuditEvent.user_id == test_admin_user.id
+            AuditEvent.user_id == test_admin_user.id,
         )
     )
     audit_event = result.scalar_one_or_none()
@@ -233,7 +217,7 @@ async def test_organization_unique_name_constraint(
     payload1 = {
         "name": "Unique Name Corp",
         "admin_email": "admin1@unique.com",
-        "admin_password": "AdminPass123!"
+        "admin_password": "AdminPass123!",
     }
     response1 = await client.post("/api/organizations", json=payload1, headers=bootstrap_headers)
     assert response1.status_code == 201
@@ -250,7 +234,7 @@ async def test_organization_unique_name_constraint(
     payload2 = {
         "name": "Unique Name Corp",  # Same name
         "admin_email": "admin2@unique.com",
-        "admin_password": "AdminPass123!"
+        "admin_password": "AdminPass123!",
     }
     response2 = await client.post("/api/organizations", json=payload2, headers=bootstrap_headers)
 

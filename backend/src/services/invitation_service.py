@@ -8,6 +8,7 @@ Implements security measures per research.md:
 - Single-use tokens
 - Duplicate prevention
 """
+
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -37,11 +38,7 @@ class InvitationService:
         self.audit_service = AuditService(db)
 
     async def create_invitation(
-        self,
-        email: str,
-        role: UserRole,
-        invited_by_user: User,
-        ip_address: str | None = None
+        self, email: str, role: UserRole, invited_by_user: User, ip_address: str | None = None
     ) -> tuple[Invitation, str]:
         """Create a new invitation.
 
@@ -66,7 +63,7 @@ class InvitationService:
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"User with email {email} already exists in organization"
+                detail=f"User with email {email} already exists in organization",
             )
 
         # Check for duplicate pending invitation
@@ -74,7 +71,7 @@ class InvitationService:
         if existing_invitation:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"User with email {email} has already been invited"
+                detail=f"User with email {email} has already been invited",
             )
 
         # Generate secure token
@@ -88,7 +85,7 @@ class InvitationService:
             role=role,
             token_hash=token_hash,
             invited_by=invited_by_user.id,
-            expires_at=datetime.now(UTC) + timedelta(days=7)
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
 
         self.db.add(invitation)
@@ -105,17 +102,14 @@ class InvitationService:
             diff_json={
                 "email": email,
                 "role": role.value,
-                "expires_at": invitation.expires_at.isoformat()
-            }
+                "expires_at": invitation.expires_at.isoformat(),
+            },
         )
 
         return invitation, token
 
     async def accept_invitation(
-        self,
-        token: str,
-        password: str,
-        ip_address: str | None = None
+        self, token: str, password: str, ip_address: str | None = None
     ) -> User:
         """Accept an invitation and create user account.
 
@@ -139,25 +133,21 @@ class InvitationService:
         # Check if invitation has expired
         if invitation.expires_at < datetime.now(UTC):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invitation has expired"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invitation has expired"
             )
 
         # Check if invitation has already been accepted (single-use)
         if invitation.accepted_at is not None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invitation has already been accepted"
+                detail="Invitation has already been accepted",
             )
 
         # Validate password
         try:
             validate_password(password)
         except PasswordValidationError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            ) from None
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
         # Create user account
         user = User(
@@ -165,7 +155,7 @@ class InvitationService:
             email=invitation.email,
             password_hash=hash_password(password),
             role=invitation.role,
-            is_active=True
+            is_active=True,
         )
 
         self.db.add(user)
@@ -186,8 +176,8 @@ class InvitationService:
             diff_json={
                 "email": user.email,
                 "role": user.role.value,
-                "accepted_at": invitation.accepted_at.isoformat()
-            }
+                "accepted_at": invitation.accepted_at.isoformat(),
+            },
         )
 
         return user
@@ -215,8 +205,7 @@ class InvitationService:
 
         if not invitation:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid invitation token"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invitation token"
             )
 
         return invitation
@@ -232,10 +221,7 @@ class InvitationService:
             User instance if found, None otherwise
         """
         result = await self.db.execute(
-            select(User).where(
-                User.email == email,
-                User.org_id == org_id
-            )
+            select(User).where(User.email == email, User.org_id == org_id)
         )
         return result.scalar_one_or_none()
 
@@ -254,7 +240,7 @@ class InvitationService:
                 Invitation.email == email,
                 Invitation.org_id == org_id,
                 Invitation.accepted_at.is_(None),  # Not yet accepted
-                Invitation.expires_at > datetime.now(UTC)  # Not expired
+                Invitation.expires_at > datetime.now(UTC),  # Not expired
             )
         )
         return result.scalar_one_or_none()

@@ -1,4 +1,5 @@
 """System manifest schema for version snapshots."""
+
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -81,7 +82,9 @@ class SystemManifest:
                 "id": str(self.version.id),
                 "label": self.version.label,
                 "status": self.version.status,
-                "release_date": self.version.release_date.isoformat() if self.version.release_date else None,
+                "release_date": self.version.release_date.isoformat()
+                if self.version.release_date
+                else None,
             },
             "sections": [
                 {

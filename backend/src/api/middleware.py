@@ -1,4 +1,5 @@
 """Middleware for rate limiting and request logging."""
+
 import json
 import logging
 import time
@@ -61,10 +62,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         """Remove requests outside the time window."""
         cutoff = datetime.now(UTC) - window
         key = (endpoint, identifier)
-        self._requests[key] = [
-            (ts, count) for ts, count in self._requests[key]
-            if ts > cutoff
-        ]
+        self._requests[key] = [(ts, count) for ts, count in self._requests[key] if ts > cutoff]
 
     def _get_request_count(self, endpoint: str, identifier: str, window: timedelta) -> int:
         """Get number of requests in the time window."""
@@ -102,8 +100,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             count = self._get_request_count("login", client_ip, timedelta(minutes=1))
             if count >= 10:
                 raise HTTPException(
-                    status_code=429,
-                    detail="Too many login attempts. Please try again later."
+                    status_code=429, detail="Too many login attempts. Please try again later."
                 )
             self._add_request("login", client_ip)
 
@@ -115,8 +112,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             count = self._get_request_count("invite", identifier, timedelta(hours=1))
             if count >= 5:
                 raise HTTPException(
-                    status_code=429,
-                    detail="Too many invitation requests. Please try again later."
+                    status_code=429, detail="Too many invitation requests. Please try again later."
                 )
             self._add_request("invite", identifier)
 

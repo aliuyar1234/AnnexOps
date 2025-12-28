@@ -1,4 +1,5 @@
 """Service layer for export operations."""
+
 import csv
 import io
 import json
@@ -79,8 +80,8 @@ class ExportService:
             )
 
         # Get total count
-        count_query = select(func.count()).select_from(Export).where(
-            Export.version_id == version_id
+        count_query = (
+            select(func.count()).select_from(Export).where(Export.version_id == version_id)
         )
         count_result = await self.db.execute(count_query)
         total = count_result.scalar_one()
@@ -299,14 +300,16 @@ class ExportService:
         )
         csv_writer.writeheader()
         for e in evidence_items:
-            csv_writer.writerow({
-                "id": str(e.id),
-                "title": e.title,
-                "type": e.evidence_type,
-                "description": e.description or "",
-                "classification": e.classification or "",
-                "tags": ",".join(e.tags or []),
-            })
+            csv_writer.writerow(
+                {
+                    "id": str(e.id),
+                    "title": e.title,
+                    "type": e.evidence_type,
+                    "description": e.description or "",
+                    "classification": e.classification or "",
+                    "tags": ",".join(e.tags or []),
+                }
+            )
         evidence_csv = csv_buffer.getvalue()
 
         # Generate CompletenessReport.json
@@ -355,9 +358,7 @@ class ExportService:
 
             # Add diff report if requested
             if include_diff and compare_version_id:
-                diff_data = await self._generate_diff_report(
-                    version_id, compare_version_id, org_id
-                )
+                diff_data = await self._generate_diff_report(version_id, compare_version_id, org_id)
                 diff_json = json.dumps(
                     diff_data, sort_keys=True, separators=(",", ":"), ensure_ascii=True
                 )
@@ -455,14 +456,16 @@ class ExportService:
             compare = compare_sections.get(key, {})
 
             if current != compare:
-                section_changes.append({
-                    "section_key": key,
-                    "change_type": "modified" if key in current_sections and key in compare_sections else (
-                        "added" if key in current_sections else "removed"
-                    ),
-                    "current_content": current,
-                    "previous_content": compare,
-                })
+                section_changes.append(
+                    {
+                        "section_key": key,
+                        "change_type": "modified"
+                        if key in current_sections and key in compare_sections
+                        else ("added" if key in current_sections else "removed"),
+                        "current_content": current,
+                        "previous_content": compare,
+                    }
+                )
 
         # Evidence changes
         added_evidence = list(current_evidence - compare_evidence)
@@ -488,8 +491,6 @@ class ExportService:
 
     async def _get_evidence_ids(self, version_id: UUID) -> set:
         """Get set of evidence IDs mapped to a version."""
-        query = select(EvidenceMapping.evidence_id).where(
-            EvidenceMapping.version_id == version_id
-        )
+        query = select(EvidenceMapping.evidence_id).where(EvidenceMapping.version_id == version_id)
         result = await self.db.execute(query)
         return {str(row[0]) for row in result.fetchall()}

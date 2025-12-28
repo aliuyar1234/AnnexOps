@@ -25,7 +25,11 @@ _FIELD_ARTIFACT_TYPES: dict[str, list[str]] = {
     "training_data_sources": ["Dataset inventory", "Dataset card", "Data lineage document"],
     "training_data_characteristics": ["Dataset card", "Data dictionary", "Sampling report"],
     "data_quality_measures": ["Quality assurance report", "Data validation logs"],
-    "data_preprocessing_steps": ["ETL pipeline documentation", "Preprocessing scripts", "Data processing report"],
+    "data_preprocessing_steps": [
+        "ETL pipeline documentation",
+        "Preprocessing scripts",
+        "Data processing report",
+    ],
     "bias_assessment": ["Bias assessment report", "Fairness evaluation", "Mitigation plan"],
     "data_protection_measures": ["DPIA", "Access control policy", "Retention policy"],
     "risk_management_system_description": ["Risk management policy", "Process description"],
@@ -76,11 +80,7 @@ class GapService:
 
         required_fields = SECTION_SCHEMAS.get(section_key, [])
         content = section.content or {}
-        missing = [
-            f
-            for f in required_fields
-            if content.get(f) in (None, "", [])
-        ]
+        missing = [f for f in required_fields if content.get(f) in (None, "", [])]
 
         suggestions = [
             GapSuggestion(field=field, artifact_types=_suggest_artifacts_for_field(field))
@@ -95,7 +95,10 @@ class GapService:
             selected_evidence_ids=[],
             prompt=f"[GAPS] Missing fields for {section_key}: {', '.join(missing) if missing else 'none'}",
             response=json.dumps(
-                {"suggestions": [s.model_dump() for s in suggestions], "disclaimer": GAP_SUGGESTIONS_DISCLAIMER},
+                {
+                    "suggestions": [s.model_dump() for s in suggestions],
+                    "disclaimer": GAP_SUGGESTIONS_DISCLAIMER,
+                },
                 ensure_ascii=False,
             ),
             cited_evidence_ids=[],

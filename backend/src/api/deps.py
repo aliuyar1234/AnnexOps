@@ -1,4 +1,5 @@
 """FastAPI dependencies for authentication and authorization."""
+
 import hashlib
 from collections.abc import Callable
 from datetime import UTC, datetime

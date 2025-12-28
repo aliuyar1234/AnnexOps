@@ -1,4 +1,5 @@
 """System Version model for AI system versioning."""
+
 from sqlalchemy import Column, Date, ForeignKey, Index, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
@@ -28,7 +29,12 @@ class SystemVersion(BaseModel):
         nullable=False,
     )
     status = Column(
-        SQLEnum(VersionStatus, name="version_status", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            VersionStatus,
+            name="version_status",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         default=VersionStatus.DRAFT,
         index=True,
@@ -77,9 +83,7 @@ class SystemVersion(BaseModel):
         backref="approved_versions",
     )
     evidence_mappings = relationship(
-        "EvidenceMapping",
-        back_populates="system_version",
-        cascade="all, delete-orphan"
+        "EvidenceMapping", back_populates="system_version", cascade="all, delete-orphan"
     )
 
     __table_args__ = (

@@ -1,4 +1,5 @@
 """Integration tests for version creation and listing."""
+
 from uuid import UUID
 
 import pytest
@@ -765,8 +766,7 @@ async def test_version_deletion_rejected_for_immutable_version(
     test_admin_user: User,
     test_ai_system: AISystem,
 ):
-    """Test that immutable versions cannot be deleted.
-    """
+    """Test that immutable versions cannot be deleted."""
     token = create_access_token({"sub": str(test_admin_user.id)})
 
     # Create and approve a version

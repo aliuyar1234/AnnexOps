@@ -2,6 +2,7 @@
 
 Schemas match the OpenAPI contract defined in specs/001-org-auth/contracts/openapi.yaml
 """
+
 from datetime import datetime
 from uuid import UUID
 
@@ -15,20 +16,10 @@ class CreateOrganizationRequest(BaseModel):
     Creates organization with initial admin user.
     """
 
-    name: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Organization display name"
-    )
-    admin_email: EmailStr = Field(
-        ...,
-        description="Email address for the initial admin user"
-    )
+    name: str = Field(..., min_length=1, max_length=255, description="Organization display name")
+    admin_email: EmailStr = Field(..., description="Email address for the initial admin user")
     admin_password: str = Field(
-        ...,
-        min_length=8,
-        description="Password for the initial admin user"
+        ..., min_length=8, description="Password for the initial admin user"
     )
 
     @field_validator("name")
@@ -48,10 +39,7 @@ class OrganizationUpdateRequest(BaseModel):
     """
 
     name: str | None = Field(
-        None,
-        min_length=1,
-        max_length=255,
-        description="Organization display name"
+        None, min_length=1, max_length=255, description="Organization display name"
     )
 
     @field_validator("name")

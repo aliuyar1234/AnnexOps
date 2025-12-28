@@ -28,4 +28,3 @@ async def test_viewer_cannot_enable_logging(
     )
 
     assert response.status_code == 403
-

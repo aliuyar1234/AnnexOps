@@ -2,6 +2,7 @@
 
 Tests SHA-256 checksum computation and presigned URL generation.
 """
+
 import hashlib
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -37,9 +38,7 @@ class TestStorageService:
         org_id = uuid4()
         filename = "test-document.pdf"
 
-        storage_uri, extension = storage_service._generate_evidence_path(
-            org_id, filename
-        )
+        storage_uri, extension = storage_service._generate_evidence_path(org_id, filename)
 
         # Should follow format: evidence/{org_id}/{yyyy}/{mm}/{uuid}.{ext}
         assert storage_uri.startswith(f"evidence/{org_id}/")
@@ -80,9 +79,7 @@ class TestStorageService:
             "https://minio.test/upload-url"
         )
 
-        upload_url, storage_uri = storage_service.generate_upload_url(
-            org_id, filename, mime_type
-        )
+        upload_url, storage_uri = storage_service.generate_upload_url(org_id, filename, mime_type)
 
         assert isinstance(upload_url, str)
         assert isinstance(storage_uri, str)
@@ -116,16 +113,12 @@ class TestStorageService:
         """Test generate_download_url delegates to storage client."""
         storage_uri = "evidence/org-id/2025/12/file.pdf"
 
-        storage_service.client.get_presigned_url.return_value = (
-            "https://minio.test/download-url"
-        )
+        storage_service.client.get_presigned_url.return_value = "https://minio.test/download-url"
 
         download_url = storage_service.generate_download_url(storage_uri)
 
         assert download_url == "https://minio.test/download-url"
-        storage_service.client.get_presigned_url.assert_called_once_with(
-            storage_uri, 3600
-        )
+        storage_service.client.get_presigned_url.assert_called_once_with(storage_uri, 3600)
 
     def test_compute_checksum_returns_sha256_hash(self, storage_service):
         """Test compute_checksum returns SHA-256 hash of file content."""
@@ -242,9 +235,7 @@ class TestStorageServiceIntegration:
         mock_client._bucket = "annexops-evidence"
         mock_client._client = Mock()
 
-        with patch(
-            "src.services.storage_service.get_storage_client", return_value=mock_client
-        ):
+        with patch("src.services.storage_service.get_storage_client", return_value=mock_client):
             return StorageService()
 
     def test_full_upload_workflow(self, storage_service):
@@ -259,9 +250,7 @@ class TestStorageServiceIntegration:
             "https://s3.amazonaws.com/upload-url"
         )
 
-        upload_url, storage_uri = storage_service.generate_upload_url(
-            org_id, filename, mime_type
-        )
+        upload_url, storage_uri = storage_service.generate_upload_url(org_id, filename, mime_type)
 
         assert "upload-url" in upload_url
         assert storage_uri.startswith(f"evidence/{org_id}/")

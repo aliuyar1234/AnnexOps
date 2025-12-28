@@ -1,4 +1,5 @@
 """Integration tests for Role-Based Access Control (RBAC)."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ class TestRBACEnforcement:
         response = await client.patch(
             f"/api/users/{test_editor_user.id}",
             headers={"Authorization": f"Bearer {viewer_token}"},
-            json={"is_active": False}
+            json={"is_active": False},
         )
 
         # Should be forbidden
@@ -56,8 +57,7 @@ class TestRBACEnforcement:
 
         # Attempt to delete editor user
         response = await client.delete(
-            f"/api/users/{test_editor_user.id}",
-            headers={"Authorization": f"Bearer {viewer_token}"}
+            f"/api/users/{test_editor_user.id}", headers={"Authorization": f"Bearer {viewer_token}"}
         )
 
         # Should be forbidden
@@ -83,7 +83,7 @@ class TestRBACEnforcement:
         response = await client.patch(
             f"/api/users/{test_viewer_user.id}",
             headers={"Authorization": f"Bearer {editor_token}"},
-            json={"role": "admin"}
+            json={"role": "admin"},
         )
 
         # Should be forbidden (only admin can change roles)
@@ -106,8 +106,7 @@ class TestRBACEnforcement:
 
         # Attempt to delete viewer
         response = await client.delete(
-            f"/api/users/{test_viewer_user.id}",
-            headers={"Authorization": f"Bearer {editor_token}"}
+            f"/api/users/{test_viewer_user.id}", headers={"Authorization": f"Bearer {editor_token}"}
         )
 
         # Should be forbidden
@@ -129,8 +128,7 @@ class TestRBACEnforcement:
 
         # List users
         response = await client.get(
-            "/api/users",
-            headers={"Authorization": f"Bearer {viewer_token}"}
+            "/api/users", headers={"Authorization": f"Bearer {viewer_token}"}
         )
 
         # Should succeed
@@ -155,8 +153,7 @@ class TestRBACEnforcement:
 
         # Get editor details
         response = await client.get(
-            f"/api/users/{test_editor_user.id}",
-            headers={"Authorization": f"Bearer {viewer_token}"}
+            f"/api/users/{test_editor_user.id}", headers={"Authorization": f"Bearer {viewer_token}"}
         )
 
         # Should succeed
@@ -180,8 +177,7 @@ class TestRoleHierarchy:
         admin_token = create_access_token({"sub": str(test_admin_user.id)})
 
         response = await client.get(
-            "/api/users",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            "/api/users", headers={"Authorization": f"Bearer {admin_token}"}
         )
 
         assert response.status_code == 200
@@ -198,8 +194,7 @@ class TestRoleHierarchy:
         admin_token = create_access_token({"sub": str(test_admin_user.id)})
 
         response = await client.get(
-            f"/api/users/{test_viewer_user.id}",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            f"/api/users/{test_viewer_user.id}", headers={"Authorization": f"Bearer {admin_token}"}
         )
 
         assert response.status_code == 200
@@ -219,7 +214,7 @@ class TestRoleHierarchy:
         response = await client.patch(
             f"/api/users/{test_viewer_user.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={"role": "editor"}
+            json={"role": "editor"},
         )
 
         assert response.status_code == 200
@@ -241,7 +236,7 @@ class TestRoleHierarchy:
         response = await client.patch(
             f"/api/users/{test_editor_user.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={"is_active": False}
+            json={"is_active": False},
         )
 
         assert response.status_code == 200
@@ -261,8 +256,7 @@ class TestRoleHierarchy:
 
         # Delete viewer
         response = await client.delete(
-            f"/api/users/{test_viewer_user.id}",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            f"/api/users/{test_viewer_user.id}", headers={"Authorization": f"Bearer {admin_token}"}
         )
 
         assert response.status_code == 204
@@ -281,8 +275,7 @@ class TestRoleHierarchy:
 
         # Filter for editors only
         response = await client.get(
-            "/api/users?role=editor",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            "/api/users?role=editor", headers={"Authorization": f"Bearer {admin_token}"}
         )
 
         assert response.status_code == 200
@@ -311,8 +304,7 @@ class TestLastAdminProtection:
 
         # Attempt to delete the only admin
         response = await client.delete(
-            f"/api/users/{test_admin_user.id}",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            f"/api/users/{test_admin_user.id}", headers={"Authorization": f"Bearer {admin_token}"}
         )
 
         # Should be rejected
@@ -336,7 +328,7 @@ class TestLastAdminProtection:
         response = await client.patch(
             f"/api/users/{test_admin_user.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={"role": "editor"}
+            json={"role": "editor"},
         )
 
         # Should be rejected
@@ -357,20 +349,14 @@ class TestLastAdminProtection:
         # Create a second admin
         from tests.conftest import create_user
 
-        second_admin = await create_user(
-            db,
-            test_org.id,
-            "admin2@test.com",
-            role=UserRole.ADMIN
-        )
+        second_admin = await create_user(db, test_org.id, "admin2@test.com", role=UserRole.ADMIN)
         await db.commit()
 
         admin_token = create_access_token({"sub": str(test_admin_user.id)})
 
         # Delete the second admin (first admin still exists)
         response = await client.delete(
-            f"/api/users/{second_admin.id}",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            f"/api/users/{second_admin.id}", headers={"Authorization": f"Bearer {admin_token}"}
         )
 
         # Should succeed
@@ -390,12 +376,7 @@ class TestLastAdminProtection:
         # Create a second admin
         from tests.conftest import create_user
 
-        second_admin = await create_user(
-            db,
-            test_org.id,
-            "admin2@test.com",
-            role=UserRole.ADMIN
-        )
+        second_admin = await create_user(db, test_org.id, "admin2@test.com", role=UserRole.ADMIN)
         await db.commit()
 
         admin_token = create_access_token({"sub": str(test_admin_user.id)})
@@ -404,7 +385,7 @@ class TestLastAdminProtection:
         response = await client.patch(
             f"/api/users/{second_admin.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={"role": "editor"}
+            json={"role": "editor"},
         )
 
         # Should succeed
@@ -429,7 +410,7 @@ class TestLastAdminProtection:
         response = await client.patch(
             f"/api/users/{test_admin_user.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={"is_active": False}
+            json={"is_active": False},
         )
 
         # Should succeed (deactivation is allowed, deletion is not)

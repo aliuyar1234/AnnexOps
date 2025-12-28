@@ -1,4 +1,5 @@
 """Evidence Item model."""
+
 from sqlalchemy import Column, ForeignKey, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
@@ -28,55 +29,42 @@ class EvidenceItem(BaseModel):
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     type = Column(
-        SQLEnum(EvidenceType, name="evidence_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            EvidenceType,
+            name="evidence_type",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        index=True
+        index=True,
     )
-    title = Column(
-        String(255),
-        nullable=False
-    )
-    description = Column(
-        Text,
-        nullable=True
-    )
-    tags = Column(
-        ARRAY(Text),
-        nullable=False,
-        server_default="{}"
-    )
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    tags = Column(ARRAY(Text), nullable=False, server_default="{}")
     classification = Column(
-        SQLEnum(Classification, name="classification", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            Classification,
+            name="classification",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         server_default="internal",
-        index=True
+        index=True,
     )
-    type_metadata = Column(
-        JSONB,
-        nullable=False
-    )
+    type_metadata = Column(JSONB, nullable=False)
     created_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
     # Relationships
-    organization = relationship(
-        "Organization",
-        back_populates="evidence_items"
-    )
-    creator = relationship(
-        "User",
-        foreign_keys=[created_by]
-    )
+    organization = relationship("Organization", back_populates="evidence_items")
+    creator = relationship("User", foreign_keys=[created_by])
     mappings = relationship(
-        "EvidenceMapping",
-        back_populates="evidence_item",
-        cascade="all, delete-orphan"
+        "EvidenceMapping", back_populates="evidence_item", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

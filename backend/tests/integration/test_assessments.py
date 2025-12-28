@@ -1,4 +1,5 @@
 """Integration tests for assessment operations."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -42,4 +42,3 @@ async def test_retention_cleanup_deletes_old_events(db: AsyncSession, test_versi
     remaining = list(result.scalars().all())
     assert len(remaining) == 1
     assert remaining[0].event_id == "evt_new"
-

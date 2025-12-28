@@ -1,4 +1,5 @@
 """Contract tests for attachment endpoints."""
+
 import io
 
 import pytest

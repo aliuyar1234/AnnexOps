@@ -3,6 +3,7 @@
 Implements organization management endpoints per OpenAPI spec in
 specs/001-org-auth/contracts/openapi.yaml
 """
+
 import hmac
 from uuid import UUID
 
@@ -29,7 +30,7 @@ settings = get_settings()
     response_model=OrganizationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create organization (bootstrap only)",
-    description="Creates organization with initial admin user. Only allowed when no organizations exist."
+    description="Creates organization with initial admin user. Only allowed when no organizations exist.",
 )
 async def create_organization(
     request: CreateOrganizationRequest,
@@ -65,9 +66,7 @@ async def create_organization(
 
     service = OrganizationService(db)
     organization = await service.create(
-        name=request.name,
-        admin_email=request.admin_email,
-        admin_password=request.admin_password
+        name=request.name, admin_email=request.admin_email, admin_password=request.admin_password
     )
     return OrganizationResponse.model_validate(organization)
 
@@ -76,12 +75,10 @@ async def create_organization(
     "/{org_id}",
     response_model=OrganizationResponse,
     summary="Get organization details",
-    description="Retrieve organization details by ID. Requires authentication."
+    description="Retrieve organization details by ID. Requires authentication.",
 )
 async def get_organization(
-    org_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    org_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> OrganizationResponse:
     """Get organization by ID.
 
@@ -106,13 +103,13 @@ async def get_organization(
     "/{org_id}",
     response_model=OrganizationResponse,
     summary="Update organization (admin only)",
-    description="Update organization details. Requires admin role."
+    description="Update organization details. Requires admin role.",
 )
 async def update_organization(
     org_id: UUID,
     request: OrganizationUpdateRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin())
+    current_user: User = Depends(require_admin()),
 ) -> OrganizationResponse:
     """Update organization details.
 
@@ -134,9 +131,5 @@ async def update_organization(
         HTTPException: 401 if not authenticated
     """
     service = OrganizationService(db)
-    organization = await service.update(
-        org_id=org_id,
-        user_id=current_user.id,
-        name=request.name
-    )
+    organization = await service.update(org_id=org_id, user_id=current_user.id, name=request.name)
     return OrganizationResponse.model_validate(organization)

@@ -23,10 +23,11 @@ class RetentionService:
         days = int(retention_days if retention_days is not None else self.settings.retention_days)
         cutoff = datetime.now(UTC) - timedelta(days=days)
 
-        count_query = select(func.count()).select_from(DecisionLog).where(DecisionLog.ingested_at < cutoff)
+        count_query = (
+            select(func.count()).select_from(DecisionLog).where(DecisionLog.ingested_at < cutoff)
+        )
         count = int((await self.db.scalar(count_query)) or 0)
 
         await self.db.execute(delete(DecisionLog).where(DecisionLog.ingested_at < cutoff))
         await self.db.flush()
         return count
-

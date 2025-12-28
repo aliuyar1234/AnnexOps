@@ -1,4 +1,5 @@
 """Annex Section model for Annex IV technical documentation."""
+
 from sqlalchemy import Boolean, Column, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import relationship

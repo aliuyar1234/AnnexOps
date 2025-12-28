@@ -36,13 +36,16 @@ async def test_draft_generation_with_citations(
         duration_ms=10,
     )
 
-    with patch(
-        "src.services.llm_service.LlmService.llm_available",
-        return_value=True,
-    ), patch(
-        "src.services.llm_service.LlmService.generate",
-        new_callable=AsyncMock,
-        return_value=completion,
+    with (
+        patch(
+            "src.services.llm_service.LlmService.llm_available",
+            return_value=True,
+        ),
+        patch(
+            "src.services.llm_service.LlmService.generate",
+            new_callable=AsyncMock,
+            return_value=completion,
+        ),
     ):
         response = await client.post(
             "/api/llm/sections/ANNEX4.RISK_MANAGEMENT/draft",
@@ -173,13 +176,16 @@ async def test_llm_history_retrieval(
         duration_ms=10,
     )
 
-    with patch(
-        "src.services.llm_service.LlmService.llm_available",
-        return_value=True,
-    ), patch(
-        "src.services.llm_service.LlmService.generate",
-        new_callable=AsyncMock,
-        return_value=completion,
+    with (
+        patch(
+            "src.services.llm_service.LlmService.llm_available",
+            return_value=True,
+        ),
+        patch(
+            "src.services.llm_service.LlmService.generate",
+            new_callable=AsyncMock,
+            return_value=completion,
+        ),
     ):
         draft_response = await client.post(
             "/api/llm/sections/ANNEX4.RISK_MANAGEMENT/draft",
@@ -248,13 +254,16 @@ async def test_llm_api_error_handling(
 
     token = create_access_token({"sub": str(test_editor_user.id)})
 
-    with patch(
-        "src.services.llm_service.LlmService.llm_available",
-        return_value=True,
-    ), patch(
-        "src.services.llm_service.LlmService.generate",
-        new_callable=AsyncMock,
-        side_effect=HTTPException(status_code=502, detail="LLM provider error"),
+    with (
+        patch(
+            "src.services.llm_service.LlmService.llm_available",
+            return_value=True,
+        ),
+        patch(
+            "src.services.llm_service.LlmService.generate",
+            new_callable=AsyncMock,
+            side_effect=HTTPException(status_code=502, detail="LLM provider error"),
+        ),
     ):
         response = await client.post(
             "/api/llm/sections/ANNEX4.RISK_MANAGEMENT/draft",

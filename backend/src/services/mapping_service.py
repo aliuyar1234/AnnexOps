@@ -1,4 +1,5 @@
 """Mapping service for managing evidence mappings."""
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -166,9 +167,7 @@ class MappingService:
         query = (
             select(EvidenceMapping)
             .where(EvidenceMapping.version_id == version_id)
-            .options(
-                selectinload(EvidenceMapping.evidence_item).selectinload(EvidenceItem.creator)
-            )
+            .options(selectinload(EvidenceMapping.evidence_item).selectinload(EvidenceItem.creator))
             .order_by(EvidenceMapping.created_at.desc())
         )
 
@@ -213,9 +212,7 @@ class MappingService:
             .where(EvidenceMapping.id == mapping_id)
             .where(EvidenceMapping.version_id == version_id)
             .where(SystemVersion.ai_system.has(org_id=org_id))
-            .options(
-                selectinload(EvidenceMapping.evidence_item).selectinload(EvidenceItem.creator)
-            )
+            .options(selectinload(EvidenceMapping.evidence_item).selectinload(EvidenceItem.creator))
         )
 
         result = await self.db.execute(query)

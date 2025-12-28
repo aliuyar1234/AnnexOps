@@ -2,6 +2,7 @@
 
 Schemas for user CRUD operations and RBAC.
 """
+
 from datetime import datetime
 from uuid import UUID
 
@@ -33,10 +34,7 @@ class UserListResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    users: list[UserResponse] = Field(
-        default_factory=list,
-        description="List of users"
-    )
+    users: list[UserResponse] = Field(default_factory=list, description="List of users")
     total: int = Field(..., description="Total number of users")
 
 
@@ -52,9 +50,6 @@ class UserUpdateRequest(BaseModel):
     role: str | None = Field(
         None,
         description="User role (admin, editor, reviewer, viewer). Admin-only.",
-        pattern="^(admin|editor|reviewer|viewer)$"
+        pattern="^(admin|editor|reviewer|viewer)$",
     )
-    is_active: bool | None = Field(
-        None,
-        description="Account active status. Admin-only."
-    )
+    is_active: bool | None = Field(None, description="Account active status. Admin-only.")

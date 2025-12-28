@@ -1,4 +1,5 @@
 """Evidence service for managing evidence items."""
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -55,7 +56,7 @@ class EvidenceService:
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB",
+                detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)}MB",
             )
 
         # Validate MIME type
@@ -157,9 +158,7 @@ class EvidenceService:
                     select(EvidenceItem.id)
                     .where(EvidenceItem.org_id == current_user.org_id)
                     .where(EvidenceItem.type == EvidenceType.UPLOAD)
-                    .where(
-                        EvidenceItem.type_metadata["checksum_sha256"].astext == checksum
-                    )
+                    .where(EvidenceItem.type_metadata["checksum_sha256"].astext == checksum)
                     .limit(1)
                 )
                 duplicate_result = await self.db.execute(duplicate_query)
@@ -252,7 +251,7 @@ class EvidenceService:
                 EvidenceMapping.version_id,
                 SystemVersion.label,
                 SystemVersion.ai_system_id,
-                AISystem.name.label('system_name')
+                AISystem.name.label("system_name"),
             )
             .select_from(EvidenceMapping)
             .join(SystemVersion, EvidenceMapping.version_id == SystemVersion.id)
@@ -267,17 +266,18 @@ class EvidenceService:
         # Build mapped versions list
         mapped_versions = []
         for row in mappings_rows:
-            mapped_versions.append({
-                'id': row.version_id,
-                'label': row.label,
-                'system_id': row.ai_system_id,
-                'system_name': row.system_name
-            })
+            mapped_versions.append(
+                {
+                    "id": row.version_id,
+                    "label": row.label,
+                    "system_id": row.ai_system_id,
+                    "system_name": row.system_name,
+                }
+            )
 
         # Count total mappings
-        count_query = (
-            select(func.count(EvidenceMapping.id))
-            .where(EvidenceMapping.evidence_id == evidence_id)
+        count_query = select(func.count(EvidenceMapping.id)).where(
+            EvidenceMapping.evidence_id == evidence_id
         )
         count_result = await self.db.execute(count_query)
         usage_count = count_result.scalar() or 0
@@ -338,28 +338,25 @@ class EvidenceService:
         if search:
             # Create tsvector from title + description
             search_vector = func.to_tsvector(
-                'english',
-                EvidenceItem.title + ' ' + func.coalesce(EvidenceItem.description, '')
+                "english", EvidenceItem.title + " " + func.coalesce(EvidenceItem.description, "")
             )
             # Create tsquery from search term
-            search_query = func.plainto_tsquery('english', search)
+            search_query = func.plainto_tsquery("english", search)
             # Apply search filter
-            query = query.where(search_vector.op('@@')(search_query))
+            query = query.where(search_vector.op("@@")(search_query))
 
         # Apply orphaned filter
         if orphaned is not None:
             if orphaned:
                 # Filter for evidence with NO mappings (orphaned)
-                mapping_subquery = (
-                    select(EvidenceMapping.evidence_id)
-                    .where(EvidenceMapping.evidence_id == EvidenceItem.id)
+                mapping_subquery = select(EvidenceMapping.evidence_id).where(
+                    EvidenceMapping.evidence_id == EvidenceItem.id
                 )
                 query = query.where(~mapping_subquery.exists())
             else:
                 # Filter for evidence with at least one mapping
-                mapping_subquery = (
-                    select(EvidenceMapping.evidence_id)
-                    .where(EvidenceMapping.evidence_id == EvidenceItem.id)
+                mapping_subquery = select(EvidenceMapping.evidence_id).where(
+                    EvidenceMapping.evidence_id == EvidenceItem.id
                 )
                 query = query.where(mapping_subquery.exists())
 
@@ -384,8 +381,7 @@ class EvidenceService:
             # Count mappings for each evidence item
             usage_query = (
                 select(
-                    EvidenceMapping.evidence_id,
-                    func.count(EvidenceMapping.id).label('usage_count')
+                    EvidenceMapping.evidence_id, func.count(EvidenceMapping.id).label("usage_count")
                 )
                 .where(EvidenceMapping.evidence_id.in_(evidence_ids))
                 .group_by(EvidenceMapping.evidence_id)
@@ -428,26 +424,31 @@ class EvidenceService:
             )
 
         # Validate type_metadata if provided
-        if 'type_metadata' in updates and updates['type_metadata'] is not None:
+        if "type_metadata" in updates and updates["type_metadata"] is not None:
             from pydantic import ValidationError
 
             # Validate against the evidence's type
             try:
                 if evidence.type == EvidenceType.UPLOAD:
                     from src.schemas.evidence import UploadMetadata
-                    UploadMetadata(**updates['type_metadata'])
+
+                    UploadMetadata(**updates["type_metadata"])
                 elif evidence.type == EvidenceType.URL:
                     from src.schemas.evidence import UrlMetadata
-                    UrlMetadata(**updates['type_metadata'])
+
+                    UrlMetadata(**updates["type_metadata"])
                 elif evidence.type == EvidenceType.GIT:
                     from src.schemas.evidence import GitMetadata
-                    GitMetadata(**updates['type_metadata'])
+
+                    GitMetadata(**updates["type_metadata"])
                 elif evidence.type == EvidenceType.TICKET:
                     from src.schemas.evidence import TicketMetadata
-                    TicketMetadata(**updates['type_metadata'])
+
+                    TicketMetadata(**updates["type_metadata"])
                 elif evidence.type == EvidenceType.NOTE:
                     from src.schemas.evidence import NoteMetadata
-                    NoteMetadata(**updates['type_metadata'])
+
+                    NoteMetadata(**updates["type_metadata"])
             except ValidationError as e:
                 error_msgs = []
                 for error in e.errors():
@@ -456,7 +457,7 @@ class EvidenceService:
                     error_msgs.append(f"{field}: {msg}")
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"type_metadata validation failed: {'; '.join(error_msgs)}"
+                    detail=f"type_metadata validation failed: {'; '.join(error_msgs)}",
                 ) from None
 
         # Filter out None values and only update provided fields
@@ -506,9 +507,8 @@ class EvidenceService:
             )
 
         # Check for existing mappings
-        mappings_count_query = (
-            select(func.count(EvidenceMapping.id))
-            .where(EvidenceMapping.evidence_id == evidence_id)
+        mappings_count_query = select(func.count(EvidenceMapping.id)).where(
+            EvidenceMapping.evidence_id == evidence_id
         )
         mappings_result = await self.db.execute(mappings_count_query)
         mappings_count = mappings_result.scalar() or 0
@@ -522,9 +522,8 @@ class EvidenceService:
         # If force=true and mappings exist, delete them first
         if force and mappings_count > 0:
             # Delete all mappings
-            delete_mappings_query = (
-                select(EvidenceMapping)
-                .where(EvidenceMapping.evidence_id == evidence_id)
+            delete_mappings_query = select(EvidenceMapping).where(
+                EvidenceMapping.evidence_id == evidence_id
             )
             mappings_result = await self.db.execute(delete_mappings_query)
             mappings_to_delete = mappings_result.scalars().all()
@@ -547,9 +546,10 @@ class EvidenceService:
 
         # If upload type, delete file from storage
         if evidence.type == EvidenceType.UPLOAD:
-            storage_uri = evidence.type_metadata.get('storage_uri')
+            storage_uri = evidence.type_metadata.get("storage_uri")
             if storage_uri:
                 from src.services.storage_service import get_storage_service
+
                 storage_service = get_storage_service()
                 try:
                     storage_service.delete_file(storage_uri)

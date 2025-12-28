@@ -1,4 +1,5 @@
 """Integration tests for version status workflow."""
+
 from datetime import date
 
 import pytest
@@ -114,7 +115,10 @@ async def test_invalid_transition_rejected(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 409
-    assert "invalid" in response.json()["detail"].lower() or "transition" in response.json()["detail"].lower()
+    assert (
+        "invalid" in response.json()["detail"].lower()
+        or "transition" in response.json()["detail"].lower()
+    )
 
 
 @pytest.mark.asyncio

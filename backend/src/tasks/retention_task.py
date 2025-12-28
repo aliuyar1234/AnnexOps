@@ -13,6 +13,7 @@ def cleanup_retention() -> int:
 
     Runs daily via Celery Beat (see `src.tasks.celery_app`).
     """
+
     async def _run() -> int:
         async with AsyncSessionLocal() as session:
             try:

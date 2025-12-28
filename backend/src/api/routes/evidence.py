@@ -1,4 +1,5 @@
 """API routes for evidence management."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -38,7 +39,7 @@ def _evidence_to_response(evidence) -> EvidenceResponse:
         created_by=evidence.created_by,
         created_at=evidence.created_at,
         updated_at=evidence.updated_at,
-        usage_count=getattr(evidence, 'usage_count', None),
+        usage_count=getattr(evidence, "usage_count", None),
     )
 
 
@@ -155,9 +156,7 @@ async def create_evidence(
 
         # Update type_metadata with actual file size and checksum
         request.type_metadata["file_size"] = file_metadata["file_size"]
-        request.type_metadata["checksum_sha256"] = storage_service.compute_checksum(
-            storage_uri
-        )
+        request.type_metadata["checksum_sha256"] = storage_service.compute_checksum(storage_uri)
 
     evidence, duplicate_of = await service.create(request, current_user)
     await db.commit()
@@ -175,9 +174,15 @@ async def create_evidence(
 async def list_evidence(
     search: str | None = Query(None, description="Full-text search on title and description"),
     tags: list[str] | None = Query(None, description="Filter by tags (must have ALL tags)"),
-    evidence_type: EvidenceType | None = Query(None, alias="type", description="Filter by evidence type"),
-    classification: Classification | None = Query(None, description="Filter by classification level"),
-    orphaned: bool | None = Query(None, description="Filter by orphaned status (true = no mappings, false = has mappings)"),
+    evidence_type: EvidenceType | None = Query(
+        None, alias="type", description="Filter by evidence type"
+    ),
+    classification: Classification | None = Query(
+        None, description="Filter by classification level"
+    ),
+    orphaned: bool | None = Query(
+        None, description="Filter by orphaned status (true = no mappings, false = has mappings)"
+    ),
     limit: int = Query(100, ge=1, le=1000, description="Maximum items to return"),
     offset: int = Query(0, ge=0, description="Number of items to skip"),
     db: AsyncSession = Depends(get_db),
@@ -322,7 +327,7 @@ async def download_evidence(
         )
 
     # Get storage URI from metadata
-    storage_uri = evidence.type_metadata.get('storage_uri')
+    storage_uri = evidence.type_metadata.get("storage_uri")
     if not storage_uri:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -1,4 +1,5 @@
 """High-risk assessment model for AI system evaluation."""
+
 from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -32,7 +33,12 @@ class HighRiskAssessment(BaseModel):
         nullable=False,
     )
     result_label = Column(
-        SQLEnum(AssessmentResult, name="assessment_result", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            AssessmentResult,
+            name="assessment_result",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
     )
     score = Column(

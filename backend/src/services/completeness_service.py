@@ -1,4 +1,5 @@
 """Completeness calculation service for Annex IV documentation."""
+
 from uuid import UUID
 
 from sqlalchemy import select
@@ -56,10 +57,7 @@ def calculate_section_score(section: AnnexSection) -> float:
 
     # Calculate field score (50%)
     content = section.content or {}
-    filled = sum(
-        1 for field in required
-        if content.get(field) not in (None, "", [])
-    )
+    filled = sum(1 for field in required if content.get(field) not in (None, "", []))
     field_score = (filled / len(required)) * 50
 
     # Calculate evidence score (50%)
@@ -172,9 +170,7 @@ async def get_completeness_report(
         CompletenessResponse with overall and per-section details
     """
     # Fetch all sections for this version
-    result = await db.execute(
-        select(AnnexSection).where(AnnexSection.version_id == version_id)
-    )
+    result = await db.execute(select(AnnexSection).where(AnnexSection.version_id == version_id))
     sections = result.scalars().all()
 
     # Calculate overall score

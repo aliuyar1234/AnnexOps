@@ -1,4 +1,5 @@
 """Assessment service for high-risk wizard operations."""
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -51,11 +52,7 @@ class AssessmentService:
         Raises:
             HTTPException: 404 if not found
         """
-        query = (
-            select(AISystem)
-            .where(AISystem.id == system_id)
-            .where(AISystem.org_id == org_id)
-        )
+        query = select(AISystem).where(AISystem.id == system_id).where(AISystem.org_id == org_id)
         result = await self.db.execute(query)
         system = result.scalar_one_or_none()
 
@@ -100,7 +97,9 @@ class AssessmentService:
         system = await self.get_system(system_id, current_user.org_id)
 
         # Calculate score and result
-        answers_list = [{"question_id": a.question_id, "answer": a.answer} for a in submission.answers]
+        answers_list = [
+            {"question_id": a.question_id, "answer": a.answer} for a in submission.answers
+        ]
         score = calculate_score(answers_list)
         result_label = get_result_label(score)
 
@@ -110,10 +109,16 @@ class AssessmentService:
             "questions": [
                 {
                     "id": a.question_id,
-                    "text": next((q["text"] for q in WIZARD_QUESTIONS if q["id"] == a.question_id), ""),
+                    "text": next(
+                        (q["text"] for q in WIZARD_QUESTIONS if q["id"] == a.question_id), ""
+                    ),
                     "answer": a.answer,
                     "high_risk_indicator": next(
-                        (q["high_risk_indicator"] for q in WIZARD_QUESTIONS if q["id"] == a.question_id),
+                        (
+                            q["high_risk_indicator"]
+                            for q in WIZARD_QUESTIONS
+                            if q["id"] == a.question_id
+                        ),
                         False,
                     ),
                 }

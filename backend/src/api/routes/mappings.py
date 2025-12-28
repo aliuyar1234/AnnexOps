@@ -1,4 +1,5 @@
 """API routes for evidence mappings."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -114,7 +115,9 @@ async def list_mappings(
     system_id: UUID,
     version_id: UUID,
     target_type: MappingTargetType | None = Query(None, description="Filter by target type"),
-    target_key: str | None = Query(None, description="Filter by target key (exact match or prefix with *)"),
+    target_key: str | None = Query(
+        None, description="Filter by target key (exact match or prefix with *)"
+    ),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     db: AsyncSession = Depends(get_db),

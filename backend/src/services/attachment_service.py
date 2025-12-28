@@ -1,4 +1,5 @@
 """Attachment service for file upload/download operations."""
+
 import os
 import uuid
 from uuid import UUID
@@ -60,11 +61,7 @@ class AttachmentService:
         Raises:
             HTTPException: 404 if not found
         """
-        query = (
-            select(AISystem)
-            .where(AISystem.id == system_id)
-            .where(AISystem.org_id == org_id)
-        )
+        query = select(AISystem).where(AISystem.id == system_id).where(AISystem.org_id == org_id)
         result = await self.db.execute(query)
         system = result.scalar_one_or_none()
 
@@ -129,7 +126,7 @@ class AttachmentService:
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB",
+                detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)}MB",
             )
 
         # Validate MIME type

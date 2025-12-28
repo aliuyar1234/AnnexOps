@@ -1,4 +1,5 @@
 """Version status workflow state machine."""
+
 from src.models.enums import VersionStatus
 
 # Valid status transitions for version lifecycle

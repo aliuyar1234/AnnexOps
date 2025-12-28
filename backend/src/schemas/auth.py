@@ -2,6 +2,7 @@
 
 Schemas match the OpenAPI contract defined in specs/001-org-auth/contracts/openapi.yaml
 """
+
 from datetime import datetime
 from uuid import UUID
 
@@ -14,15 +15,8 @@ class LoginRequest(BaseModel):
     Used for POST /auth/login endpoint.
     """
 
-    email: EmailStr = Field(
-        ...,
-        description="User email address"
-    )
-    password: str = Field(
-        ...,
-        min_length=8,
-        description="User password"
-    )
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., min_length=8, description="User password")
 
 
 class TokenResponse(BaseModel):
@@ -32,18 +26,9 @@ class TokenResponse(BaseModel):
     Contains access token and metadata.
     """
 
-    access_token: str = Field(
-        ...,
-        description="JWT access token for API authentication"
-    )
-    token_type: str = Field(
-        default="bearer",
-        description="Token type (always 'bearer')"
-    )
-    expires_in: int | None = Field(
-        default=None,
-        description="Seconds until access token expires"
-    )
+    access_token: str = Field(..., description="JWT access token for API authentication")
+    token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
+    expires_in: int | None = Field(default=None, description="Seconds until access token expires")
 
 
 class UserResponse(BaseModel):
@@ -70,6 +55,5 @@ class LogoutResponse(BaseModel):
     """
 
     message: str = Field(
-        default="Logged out successfully",
-        description="Logout confirmation message"
+        default="Logged out successfully", description="Logout confirmation message"
     )

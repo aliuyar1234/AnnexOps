@@ -48,4 +48,6 @@ class DecisionLog(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return f"<DecisionLog(id={self.id}, version_id={self.version_id}, event_id={self.event_id})>"
+        return (
+            f"<DecisionLog(id={self.id}, version_id={self.version_id}, event_id={self.event_id})>"
+        )

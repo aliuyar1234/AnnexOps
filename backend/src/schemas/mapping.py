@@ -1,4 +1,5 @@
 """Pydantic schemas for evidence mapping endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 
@@ -12,9 +13,15 @@ class CreateMappingRequest(BaseModel):
     """Request schema for creating an evidence mapping."""
 
     evidence_id: UUID = Field(..., description="Evidence item to map")
-    target_type: MappingTargetType = Field(..., description="Target type (section/field/requirement)")
-    target_key: str = Field(..., min_length=1, max_length=100, description="Target key (e.g., 'ANNEX4.RISK_MANAGEMENT')")
-    strength: MappingStrength | None = Field(None, description="Mapping strength (weak/medium/strong)")
+    target_type: MappingTargetType = Field(
+        ..., description="Target type (section/field/requirement)"
+    )
+    target_key: str = Field(
+        ..., min_length=1, max_length=100, description="Target key (e.g., 'ANNEX4.RISK_MANAGEMENT')"
+    )
+    strength: MappingStrength | None = Field(
+        None, description="Mapping strength (weak/medium/strong)"
+    )
     notes: str | None = Field(None, description="Mapping rationale and notes")
 
 

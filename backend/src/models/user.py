@@ -1,4 +1,5 @@
 """User model."""
+
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
@@ -22,54 +23,31 @@ class User(BaseModel):
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
-    email = Column(
-        String(255),
-        nullable=False
-    )
-    password_hash = Column(
-        String(255),
-        nullable=False
-    )
+    email = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=False)
     role = Column(
-        SQLEnum(UserRole, name="user_role", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            UserRole,
+            name="user_role",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
-        default=UserRole.VIEWER
+        default=UserRole.VIEWER,
     )
-    is_active = Column(
-        Boolean,
-        nullable=False,
-        default=True
-    )
-    failed_login_attempts = Column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-    locked_until = Column(
-        DateTime(timezone=True),
-        nullable=True
-    )
-    last_login_at = Column(
-        DateTime(timezone=True),
-        nullable=True
-    )
+    is_active = Column(Boolean, nullable=False, default=True)
+    failed_login_attempts = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    organization = relationship(
-        "Organization",
-        back_populates="users"
-    )
+    organization = relationship("Organization", back_populates="users")
     invitations_sent = relationship(
-        "Invitation",
-        back_populates="inviter",
-        foreign_keys="Invitation.invited_by"
+        "Invitation", back_populates="inviter", foreign_keys="Invitation.invited_by"
     )
-    audit_events = relationship(
-        "AuditEvent",
-        back_populates="user"
-    )
+    audit_events = relationship("AuditEvent", back_populates="user")
 
     __table_args__ = (
         # Unique constraint: email unique within organization

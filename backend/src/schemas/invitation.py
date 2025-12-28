@@ -2,6 +2,7 @@
 
 Schemas match the OpenAPI contract for invitation-related endpoints.
 """
+
 from datetime import datetime
 from uuid import UUID
 
@@ -16,14 +17,8 @@ class InviteRequest(BaseModel):
     Used for POST /auth/invite endpoint.
     """
 
-    email: EmailStr = Field(
-        ...,
-        description="Email address of the user to invite"
-    )
-    role: UserRole = Field(
-        ...,
-        description="Role to assign to the invited user"
-    )
+    email: EmailStr = Field(..., description="Email address of the user to invite")
+    role: UserRole = Field(..., description="Role to assign to the invited user")
 
 
 class InvitationResponse(BaseModel):
@@ -48,16 +43,8 @@ class AcceptInviteRequest(BaseModel):
     Used for POST /auth/accept-invite endpoint.
     """
 
-    token: str = Field(
-        ...,
-        min_length=32,
-        description="Invitation token from email"
-    )
-    password: str = Field(
-        ...,
-        min_length=8,
-        description="Password for new user account"
-    )
+    token: str = Field(..., min_length=32, description="Invitation token from email")
+    password: str = Field(..., min_length=8, description="Password for new user account")
 
 
 class AcceptInviteResponse(BaseModel):

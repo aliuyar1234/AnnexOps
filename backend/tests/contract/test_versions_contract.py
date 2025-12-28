@@ -1,4 +1,5 @@
 """Contract tests for /systems/{id}/versions endpoints."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

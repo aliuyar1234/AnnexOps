@@ -3,6 +3,7 @@
 Tests the complete authentication flow including login, logout,
 token refresh, and account lockout mechanisms.
 """
+
 import asyncio
 from datetime import UTC, datetime, timedelta
 
@@ -21,19 +22,12 @@ class TestLoginFlow:
     """Integration tests for login flow."""
 
     async def test_successful_login_flow(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test complete successful login flow."""
         # Login with valid credentials
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 200
@@ -58,26 +52,19 @@ class TestLoginFlow:
         result = await db.execute(
             select(AuditEvent).where(
                 AuditEvent.action == AuditAction.USER_LOGIN,
-                AuditEvent.user_id == test_admin_user.id
+                AuditEvent.user_id == test_admin_user.id,
             )
         )
         audit_event = result.scalar_one_or_none()
         assert audit_event is not None
 
     async def test_login_with_invalid_password(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test login with invalid password increments failure counter."""
         # Attempt login with wrong password
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "WrongPassword123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPassword123!"}
         )
 
         assert response.status_code == 401
@@ -87,27 +74,17 @@ class TestLoginFlow:
         assert test_admin_user.failed_login_attempts == 1
         assert test_admin_user.last_login_at is None
 
-    async def test_login_with_nonexistent_user(
-        self,
-        client: AsyncClient
-    ):
+    async def test_login_with_nonexistent_user(self, client: AsyncClient):
         """Test login with non-existent user returns 401."""
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "nonexistent@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "nonexistent@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 401
         assert "detail" in response.json()
 
     async def test_login_with_inactive_account(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test login with inactive account is rejected."""
         # Deactivate user
@@ -116,11 +93,7 @@ class TestLoginFlow:
 
         # Attempt login
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 403
@@ -132,20 +105,13 @@ class TestAccountLockout:
     """Integration tests for account lockout mechanism."""
 
     async def test_account_lockout_after_5_failures(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test account is locked after 5 failed login attempts."""
         # Make 5 failed login attempts
         for _ in range(5):
             response = await client.post(
-                "/api/auth/login",
-                json={
-                    "email": "admin@test.com",
-                    "password": "WrongPassword"
-                }
+                "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPassword"}
             )
             assert response.status_code == 401
 
@@ -157,11 +123,7 @@ class TestAccountLockout:
 
         # Attempt login with correct password (should be locked)
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 423
@@ -171,24 +133,20 @@ class TestAccountLockout:
         result = await db.execute(
             select(AuditEvent).where(
                 AuditEvent.action == AuditAction.USER_LOCKOUT,
-                AuditEvent.user_id == test_admin_user.id
+                AuditEvent.user_id == test_admin_user.id,
             )
         )
         audit_events = result.scalars().all()
         assert len(audit_events) >= 1
 
     async def test_exponential_backoff_lockout(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test lockout duration increases exponentially."""
         # First lockout (5 failures)
         for _ in range(5):
             await client.post(
-                "/api/auth/login",
-                json={"email": "admin@test.com", "password": "WrongPass123!"}
+                "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPass123!"}
             )
 
         await db.refresh(test_admin_user)
@@ -207,8 +165,7 @@ class TestAccountLockout:
         # Trigger second lockout
         for _ in range(5):
             await client.post(
-                "/api/auth/login",
-                json={"email": "admin@test.com", "password": "WrongPass123!"}
+                "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPass123!"}
             )
 
         await db.refresh(test_admin_user)
@@ -220,17 +177,13 @@ class TestAccountLockout:
         assert 115 < lockout_duration < 130  # ~2 minutes
 
     async def test_successful_login_resets_failure_counter(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test successful login resets failed login attempts."""
         # Make 3 failed attempts
         for _ in range(3):
             await client.post(
-                "/api/auth/login",
-                json={"email": "admin@test.com", "password": "WrongPass123!"}
+                "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPass123!"}
             )
 
         await db.refresh(test_admin_user)
@@ -238,11 +191,7 @@ class TestAccountLockout:
 
         # Successful login
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         assert response.status_code == 200
 
@@ -251,10 +200,7 @@ class TestAccountLockout:
         assert test_admin_user.failed_login_attempts == 0
 
     async def test_lockout_expires_after_duration(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test account is unlocked after lockout duration expires."""
         # Set locked_until to past time
@@ -264,11 +210,7 @@ class TestAccountLockout:
 
         # Attempt login (should succeed as lockout expired)
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 200
@@ -278,19 +220,11 @@ class TestAccountLockout:
 class TestTokenRefresh:
     """Integration tests for token refresh flow."""
 
-    async def test_refresh_token_flow(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
-    ):
+    async def test_refresh_token_flow(self, client: AsyncClient, test_admin_user: User):
         """Test complete token refresh flow."""
         # Login to get refresh token
         login_response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         assert login_response.status_code == 200
         original_access_token = login_response.json()["access_token"]
@@ -311,15 +245,11 @@ class TestTokenRefresh:
 
         # Verify new token works
         me_response = await client.get(
-            "/api/me",
-            headers={"Authorization": f"Bearer {new_access_token}"}
+            "/api/me", headers={"Authorization": f"Bearer {new_access_token}"}
         )
         assert me_response.status_code == 200
 
-    async def test_refresh_with_invalid_token(
-        self,
-        client: AsyncClient
-    ):
+    async def test_refresh_with_invalid_token(self, client: AsyncClient):
         """Test refresh with invalid token is rejected."""
         client.cookies.set("refresh_token", "invalid_token")
         response = await client.post("/api/auth/refresh")
@@ -331,26 +261,18 @@ class TestLogoutFlow:
     """Integration tests for logout flow."""
 
     async def test_logout_clears_refresh_token(
-        self,
-        client: AsyncClient,
-        db: AsyncSession,
-        test_admin_user: User
+        self, client: AsyncClient, db: AsyncSession, test_admin_user: User
     ):
         """Test logout clears refresh token cookie."""
         # Login
         login_response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         access_token = login_response.json()["access_token"]
 
         # Logout
         logout_response = await client.post(
-            "/api/auth/logout",
-            headers={"Authorization": f"Bearer {access_token}"}
+            "/api/auth/logout", headers={"Authorization": f"Bearer {access_token}"}
         )
 
         assert logout_response.status_code == 200
@@ -363,7 +285,7 @@ class TestLogoutFlow:
         result = await db.execute(
             select(AuditEvent).where(
                 AuditEvent.action == AuditAction.USER_LOGOUT,
-                AuditEvent.user_id == test_admin_user.id
+                AuditEvent.user_id == test_admin_user.id,
             )
         )
         audit_event = result.scalar_one_or_none()
@@ -375,26 +297,17 @@ class TestCurrentUser:
     """Integration tests for current user endpoint."""
 
     async def test_get_current_user_with_valid_token(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
+        self, client: AsyncClient, test_admin_user: User
     ):
         """Test GET /me returns current user info."""
         # Login
         login_response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         access_token = login_response.json()["access_token"]
 
         # Get current user
-        response = await client.get(
-            "/api/me",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
+        response = await client.get("/api/me", headers={"Authorization": f"Bearer {access_token}"})
 
         assert response.status_code == 200
         data = response.json()
@@ -402,22 +315,13 @@ class TestCurrentUser:
         assert data["role"] == "admin"
         assert data["is_active"] is True
 
-    async def test_get_current_user_with_expired_token(
-        self,
-        client: AsyncClient
-    ):
+    async def test_get_current_user_with_expired_token(self, client: AsyncClient):
         """Test GET /me with expired token returns 401."""
         # Use an invalid/expired token
-        response = await client.get(
-            "/api/me",
-            headers={"Authorization": "Bearer expired_token"}
-        )
+        response = await client.get("/api/me", headers={"Authorization": "Bearer expired_token"})
         assert response.status_code == 401
 
-    async def test_get_current_user_without_token(
-        self,
-        client: AsyncClient
-    ):
+    async def test_get_current_user_without_token(self, client: AsyncClient):
         """Test GET /me without token returns 401."""
         response = await client.get("/api/me")
         # Can be 401 or 403 depending on implementation

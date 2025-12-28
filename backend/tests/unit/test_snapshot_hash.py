@@ -1,4 +1,5 @@
 """Unit tests for snapshot hash computation."""
+
 import json
 from datetime import date, datetime
 from uuid import uuid4

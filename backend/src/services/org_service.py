@@ -1,4 +1,5 @@
 """Organization service for managing organizations and bootstrap."""
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -24,12 +25,7 @@ class OrganizationService:
         self.db = db
         self.audit_service = AuditService(db)
 
-    async def create(
-        self,
-        name: str,
-        admin_email: str,
-        admin_password: str
-    ) -> Organization:
+    async def create(self, name: str, admin_email: str, admin_password: str) -> Organization:
         """Create organization with initial admin user (bootstrap).
 
         This is the bootstrap operation that creates the first organization
@@ -53,17 +49,14 @@ class OrganizationService:
         if existing_org:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Organization already exists. Only one organization allowed in MVP."
+                detail="Organization already exists. Only one organization allowed in MVP.",
             )
 
         # Validate admin password
         try:
             validate_password(admin_password)
         except PasswordValidationError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            ) from None
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
         # Create organization
         organization = Organization(name=name)
@@ -76,7 +69,7 @@ class OrganizationService:
             email=admin_email,
             password_hash=hash_password(admin_password),
             role=UserRole.ADMIN,
-            is_active=True
+            is_active=True,
         )
         self.db.add(admin_user)
         await self.db.flush()
@@ -84,7 +77,7 @@ class OrganizationService:
         # Log organization creation (user_id=None for bootstrap)
         await self.audit_service.log_organization_create(
             org_id=organization.id,
-            user_id=None  # Bootstrap action, no authenticated user yet
+            user_id=None,  # Bootstrap action, no authenticated user yet
         )
 
         await self.db.commit()
@@ -104,25 +97,17 @@ class OrganizationService:
         Raises:
             HTTPException: 404 if organization not found
         """
-        result = await self.db.execute(
-            select(Organization).where(Organization.id == org_id)
-        )
+        result = await self.db.execute(select(Organization).where(Organization.id == org_id))
         organization = result.scalar_one_or_none()
 
         if not organization:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
             )
 
         return organization
 
-    async def update(
-        self,
-        org_id: UUID,
-        user_id: UUID,
-        name: str | None = None
-    ) -> Organization:
+    async def update(self, org_id: UUID, user_id: UUID, name: str | None = None) -> Organization:
         """Update organization details.
 
         Args:
@@ -150,15 +135,10 @@ class OrganizationService:
 
         # Create audit log with diff
         new_values = {"name": organization.name}
-        diff = {
-            "before": old_values,
-            "after": new_values
-        }
+        diff = {"before": old_values, "after": new_values}
 
         await self.audit_service.log_organization_update(
-            org_id=organization.id,
-            user_id=user_id,
-            diff=diff
+            org_id=organization.id, user_id=user_id, diff=diff
         )
 
         await self.db.commit()

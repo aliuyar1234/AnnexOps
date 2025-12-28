@@ -113,7 +113,9 @@ class LoggingService:
         if not allow_raw_pii:
             raw_subject_id = subject.get("subject_id")
             if raw_subject_id and not subject.get("subject_id_hash"):
-                subject["subject_id_hash"] = f"sha256:{hashlib.sha256(raw_subject_id.encode('utf-8')).hexdigest()}"
+                subject["subject_id_hash"] = (
+                    f"sha256:{hashlib.sha256(raw_subject_id.encode('utf-8')).hexdigest()}"
+                )
             subject.pop("subject_id", None)
             event_json["subject"] = subject
 
@@ -171,10 +173,13 @@ class LoggingService:
 
     async def get_event(self, version_id: UUID, log_id: UUID) -> DecisionLog:
         """Get a single event by id (scoped to version)."""
-        query = select(DecisionLog).where(DecisionLog.id == log_id).where(DecisionLog.version_id == version_id)
+        query = (
+            select(DecisionLog)
+            .where(DecisionLog.id == log_id)
+            .where(DecisionLog.version_id == version_id)
+        )
         result = await self.db.execute(query)
         log = result.scalar_one_or_none()
         if not log:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Log entry not found")
         return log
-
