@@ -17,6 +17,11 @@ jobs:
       BOOTSTRAP_TOKEN: test-bootstrap-token
       DATABASE_URL: postgresql+asyncpg://annexops:annexops@localhost:5433/annexops_test
       JWT_SECRET: ci-jwt-secret-not-for-production
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: annexops-attachments
+      MINIO_USE_SSL: "false"
 
     services:
       postgres:
@@ -46,8 +51,6 @@ jobs:
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -58,6 +61,49 @@ jobs:
       - name: Lint & format (pre-commit)
         run: pre-commit run --all-files --show-diff-on-failure
 
+      - name: Start MinIO
+        run: |
+          docker run --detach --name minio \
+            --publish 9000:9000 --publish 9001:9001 \
+            --env MINIO_ROOT_USER="${MINIO_ACCESS_KEY}" \
+            --env MINIO_ROOT_PASSWORD="${MINIO_SECRET_KEY}" \
+            minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address ":9001"
+
+      - name: Wait for MinIO
+        run: |
+          for i in {1..30}; do
+            curl --fail http://localhost:9000/minio/health/ready >/dev/null && exit 0
+            sleep 2
+          done
+          echo "MinIO did not become ready in time" >&2
+          docker logs minio || true
+          exit 1
+
+      - name: Ensure S3 bucket exists
+        run: |
+          python - <<'PY'
+          import boto3
+          import os
+          from botocore.config import Config
+
+          endpoint = os.environ.get("MINIO_ENDPOINT", "localhost:9000")
+          access_key = os.environ["MINIO_ACCESS_KEY"]
+          secret_key = os.environ["MINIO_SECRET_KEY"]
+          bucket = os.environ.get("MINIO_BUCKET", "annexops-attachments")
+
+          client = boto3.client(
+              "s3",
+              endpoint_url=f"http://{endpoint}",
+              aws_access_key_id=access_key,
+              aws_secret_access_key=secret_key,
+              region_name="us-east-1",
+              config=Config(s3={"addressing_style": "path"}),
+          )
+          existing = {b["Name"] for b in client.list_buckets().get("Buckets", [])}
+          if bucket not in existing:
+              client.create_bucket(Bucket=bucket)
+          PY
+
       - name: Tests
         run: |
           cd backend
@@ -65,3 +111,7 @@ jobs:
 
       - name: Dependency audit
         run: python -m pip_audit -r backend/requirements.txt
+
+      - name: Stop MinIO
+        if: always()
+        run: docker rm -f minio || true
