@@ -4,13 +4,13 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
-from src.models.organization import Organization
-from src.models.user import User
 from src.models.ai_system import AISystem
-from src.models.system_version import SystemVersion
+from src.models.enums import MappingTargetType
 from src.models.evidence_item import EvidenceItem
 from src.models.evidence_mapping import EvidenceMapping
-from src.models.enums import MappingTargetType, MappingStrength
+from src.models.organization import Organization
+from src.models.system_version import SystemVersion
+from src.models.user import User
 from tests.conftest import create_evidence_mapping
 
 
@@ -28,7 +28,7 @@ async def test_create_mapping_returns_201(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
         json={
             "evidence_id": str(test_evidence_item.id),
             "target_type": "section",
@@ -65,7 +65,7 @@ async def test_create_mapping_without_optional_fields_returns_201(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
         json={
             "evidence_id": str(test_evidence_item.id),
             "target_type": "field",
@@ -109,7 +109,7 @@ async def test_create_mapping_returns_409_for_duplicate(
 
     # Attempt to create duplicate
     response = await client.post(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
         json={
             "evidence_id": str(test_evidence_item.id),
             "target_type": "section",
@@ -135,7 +135,7 @@ async def test_create_mapping_returns_404_for_nonexistent_evidence(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
         json={
             "evidence_id": str(uuid4()),
             "target_type": "section",
@@ -161,7 +161,7 @@ async def test_create_mapping_returns_404_for_nonexistent_version(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{uuid4()}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{uuid4()}/evidence",
         json={
             "evidence_id": str(test_evidence_item.id),
             "target_type": "section",
@@ -187,7 +187,7 @@ async def test_create_mapping_returns_403_for_viewer_role(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.post(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
         json={
             "evidence_id": str(test_evidence_item.id),
             "target_type": "section",
@@ -213,7 +213,7 @@ async def test_list_mappings_returns_200(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -264,7 +264,7 @@ async def test_list_mappings_with_target_type_filter_returns_200(
     await db.commit()
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence?target_type=section",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence?target_type=section",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -308,7 +308,7 @@ async def test_list_mappings_with_target_key_filter_returns_200(
     await db.commit()
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence?target_key=ANNEX4*",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence?target_key=ANNEX4*",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -333,7 +333,7 @@ async def test_delete_mapping_returns_204(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.delete(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence/{test_evidence_mapping.id}",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence/{test_evidence_mapping.id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -354,7 +354,7 @@ async def test_delete_mapping_returns_404_for_nonexistent_mapping(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.delete(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence/{uuid4()}",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence/{uuid4()}",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -375,7 +375,7 @@ async def test_delete_mapping_returns_403_for_viewer_role(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.delete(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/evidence/{test_evidence_mapping.id}",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/evidence/{test_evidence_mapping.id}",
         headers={"Authorization": f"Bearer {token}"},
     )
 

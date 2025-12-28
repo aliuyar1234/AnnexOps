@@ -1,13 +1,14 @@
 """Organization service for managing organizations and bootstrap."""
-from typing import Optional
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+
 from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.security import PasswordValidationError, hash_password, validate_password
+from src.models.enums import UserRole
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.enums import UserRole, AuditAction
-from src.core.security import hash_password, validate_password, PasswordValidationError
 from src.services.audit_service import AuditService
 
 
@@ -62,7 +63,7 @@ class OrganizationService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
-            )
+            ) from None
 
         # Create organization
         organization = Organization(name=name)
@@ -120,7 +121,7 @@ class OrganizationService:
         self,
         org_id: UUID,
         user_id: UUID,
-        name: Optional[str] = None
+        name: str | None = None
     ) -> Organization:
         """Update organization details.
 

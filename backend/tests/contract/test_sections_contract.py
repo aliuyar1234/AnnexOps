@@ -4,10 +4,10 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
-from src.models.organization import Organization
-from src.models.user import User
 from src.models.ai_system import AISystem
+from src.models.organization import Organization
 from src.models.system_version import SystemVersion
+from src.models.user import User
 
 
 @pytest.mark.asyncio
@@ -23,7 +23,7 @@ async def test_list_sections_returns_200(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/sections",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -58,7 +58,7 @@ async def test_list_sections_returns_401_without_auth(
 ):
     """GET /systems/{id}/versions/{vid}/sections returns 401 without authentication."""
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/sections",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections",
     )
 
     assert response.status_code == 401
@@ -78,7 +78,7 @@ async def test_list_sections_returns_404_for_nonexistent_version(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{uuid4()}/sections",
+        f"/api/systems/{test_ai_system.id}/versions/{uuid4()}/sections",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -98,7 +98,7 @@ async def test_get_section_returns_200(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -127,7 +127,7 @@ async def test_get_section_returns_404_for_nonexistent_version(
     token = create_access_token({"sub": str(test_viewer_user.id)})
 
     response = await client.get(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{uuid4()}/sections/ANNEX4.RISK_MANAGEMENT",
+        f"/api/systems/{test_ai_system.id}/versions/{uuid4()}/sections/ANNEX4.RISK_MANAGEMENT",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -154,7 +154,7 @@ async def test_update_section_returns_200(
     }
 
     response = await client.patch(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
         json=update_data,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -192,7 +192,7 @@ async def test_update_section_with_evidence_refs_returns_200(
     }
 
     response = await client.patch(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
         json=update_data,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -223,7 +223,7 @@ async def test_update_section_returns_403_for_viewer_role(
     }
 
     response = await client.patch(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
         json=update_data,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -251,7 +251,7 @@ async def test_update_section_returns_404_for_nonexistent_version(
     }
 
     response = await client.patch(
-        f"/api/v1/systems/{test_ai_system.id}/versions/{uuid4()}/sections/ANNEX4.RISK_MANAGEMENT",
+        f"/api/systems/{test_ai_system.id}/versions/{uuid4()}/sections/ANNEX4.RISK_MANAGEMENT",
         json=update_data,
         headers={"Authorization": f"Bearer {token}"},
     )

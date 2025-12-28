@@ -44,7 +44,7 @@ async def test_full_upload_evidence_flow(
 
             # Step 1: Get presigned upload URL
             url_response = await client.post(
-                "/api/v1/evidence/upload-url",
+                "/api/evidence/upload-url",
                 json={
                     "filename": "compliance_report.pdf",
                     "mime_type": "application/pdf",
@@ -63,7 +63,7 @@ async def test_full_upload_evidence_flow(
 
             # Step 3: Create evidence item with uploaded file
             create_response = await client.post(
-                "/api/v1/evidence",
+                "/api/evidence",
                 json={
                     "type": "upload",
                     "title": "Compliance Report 2025",
@@ -89,7 +89,7 @@ async def test_full_upload_evidence_flow(
 
             # Step 4: Verify evidence appears in list
             list_response = await client.get(
-                "/api/v1/evidence",
+                "/api/evidence",
                 headers={"Authorization": f"Bearer {token}"},
             )
             assert list_response.status_code == 200
@@ -111,7 +111,7 @@ async def test_create_different_evidence_types(
 
     # Create URL evidence
     url_response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "EU AI Act Documentation",
@@ -133,7 +133,7 @@ async def test_create_different_evidence_types(
 
     # Create Git evidence
     git_response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Model Training Code",
@@ -159,7 +159,7 @@ async def test_create_different_evidence_types(
 
     # Create Ticket evidence
     ticket_response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "ticket",
             "title": "Bias Mitigation Issue",
@@ -183,7 +183,7 @@ async def test_create_different_evidence_types(
 
     # Create Note evidence
     note_response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Risk Assessment Notes",
@@ -203,7 +203,7 @@ async def test_create_different_evidence_types(
 
     # Verify all evidence items are in list
     list_response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert list_response.status_code == 200
@@ -228,7 +228,7 @@ async def test_filter_evidence_by_type(
 
     # Create multiple evidence types
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Note 1",
@@ -238,7 +238,7 @@ async def test_filter_evidence_by_type(
     )
 
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "URL 1",
@@ -248,7 +248,7 @@ async def test_filter_evidence_by_type(
     )
 
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Note 2",
@@ -259,7 +259,7 @@ async def test_filter_evidence_by_type(
 
     # Filter by note type
     note_response = await client.get(
-        "/api/v1/evidence?type=note",
+        "/api/evidence?type=note",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert note_response.status_code == 200
@@ -271,7 +271,7 @@ async def test_filter_evidence_by_type(
 
     # Filter by url type
     url_response = await client.get(
-        "/api/v1/evidence?type=url",
+        "/api/evidence?type=url",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert url_response.status_code == 200
@@ -294,7 +294,7 @@ async def test_evidence_delete_flow(
 
     # Create evidence
     create_response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Temporary Note",
@@ -306,28 +306,28 @@ async def test_evidence_delete_flow(
 
     # Verify it exists
     get_response = await client.get(
-        f"/api/v1/evidence/{evidence_id}",
+        f"/api/evidence/{evidence_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert get_response.status_code == 200
 
     # Delete evidence
     delete_response = await client.delete(
-        f"/api/v1/evidence/{evidence_id}",
+        f"/api/evidence/{evidence_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert delete_response.status_code == 204
 
     # Verify it's gone
     get_after_delete = await client.get(
-        f"/api/v1/evidence/{evidence_id}",
+        f"/api/evidence/{evidence_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert get_after_delete.status_code == 404
 
     # Verify not in list
     list_response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token}"},
     )
     data = list_response.json()
@@ -343,10 +343,9 @@ async def test_evidence_org_isolation(
     test_editor_user: User,
 ):
     """Test that evidence items are isolated by organization."""
-    from tests.conftest import create_user
-
     from src.models.enums import UserRole
     from src.models.organization import Organization as OrgModel
+    from tests.conftest import create_user
 
     # Create second organization with user
     org2 = OrgModel(name="Second Org")
@@ -366,7 +365,7 @@ async def test_evidence_org_isolation(
 
     # User 1 creates evidence
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Org 1 Evidence",
@@ -377,7 +376,7 @@ async def test_evidence_org_isolation(
 
     # User 2 creates evidence
     await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Org 2 Evidence",
@@ -388,7 +387,7 @@ async def test_evidence_org_isolation(
 
     # User 1 should only see their org's evidence
     list1_response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token1}"},
     )
     data1 = list1_response.json()
@@ -398,7 +397,7 @@ async def test_evidence_org_isolation(
 
     # User 2 should only see their org's evidence
     list2_response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token2}"},
     )
     data2 = list2_response.json()
@@ -420,7 +419,7 @@ async def test_evidence_pagination(
     # Create 5 evidence items
     for i in range(5):
         await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": f"Evidence {i+1}",
@@ -431,7 +430,7 @@ async def test_evidence_pagination(
 
     # Get first 2 items
     page1_response = await client.get(
-        "/api/v1/evidence?limit=2&offset=0",
+        "/api/evidence?limit=2&offset=0",
         headers={"Authorization": f"Bearer {token}"},
     )
     page1_data = page1_response.json()
@@ -439,7 +438,7 @@ async def test_evidence_pagination(
 
     # Get next 2 items
     page2_response = await client.get(
-        "/api/v1/evidence?limit=2&offset=2",
+        "/api/evidence?limit=2&offset=2",
         headers={"Authorization": f"Bearer {token}"},
     )
     page2_data = page2_response.json()
@@ -447,7 +446,7 @@ async def test_evidence_pagination(
 
     # Get last item
     page3_response = await client.get(
-        "/api/v1/evidence?limit=2&offset=4",
+        "/api/evidence?limit=2&offset=4",
         headers={"Authorization": f"Bearer {token}"},
     )
     page3_data = page3_response.json()
@@ -473,7 +472,7 @@ async def test_url_type_validation(
 
     # Valid URL with all fields
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Test URL",
@@ -488,7 +487,7 @@ async def test_url_type_validation(
 
     # Valid URL without optional accessed_at
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Test URL 2",
@@ -502,7 +501,7 @@ async def test_url_type_validation(
 
     # Invalid: missing URL
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Missing URL",
@@ -514,7 +513,7 @@ async def test_url_type_validation(
 
     # Invalid: malformed URL
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "url",
             "title": "Bad URL",
@@ -539,7 +538,7 @@ async def test_git_type_validation(
 
     # Valid Git with all fields
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Git Evidence",
@@ -559,7 +558,7 @@ async def test_git_type_validation(
 
     # Valid Git with only required fields
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Git Evidence 2",
@@ -574,7 +573,7 @@ async def test_git_type_validation(
 
     # Invalid: missing commit_hash
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Missing Commit",
@@ -588,7 +587,7 @@ async def test_git_type_validation(
 
     # Invalid: commit_hash too short
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Short Commit",
@@ -603,7 +602,7 @@ async def test_git_type_validation(
 
     # Invalid: commit_hash not hex
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "git",
             "title": "Bad Commit Hash",
@@ -629,7 +628,7 @@ async def test_ticket_type_validation(
 
     # Valid Ticket with all fields
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "ticket",
             "title": "Ticket Evidence",
@@ -645,7 +644,7 @@ async def test_ticket_type_validation(
 
     # Valid Ticket without optional ticket_url
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "ticket",
             "title": "Ticket Evidence 2",
@@ -660,7 +659,7 @@ async def test_ticket_type_validation(
 
     # Invalid: missing ticket_id
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "ticket",
             "title": "Missing Ticket ID",
@@ -674,7 +673,7 @@ async def test_ticket_type_validation(
 
     # Invalid: missing ticket_system
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "ticket",
             "title": "Missing System",
@@ -699,7 +698,7 @@ async def test_note_type_validation(
 
     # Valid Note
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Note Evidence",
@@ -713,7 +712,7 @@ async def test_note_type_validation(
 
     # Valid Note with markdown content
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Markdown Note",
@@ -727,7 +726,7 @@ async def test_note_type_validation(
 
     # Invalid: missing content
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Missing Content",
@@ -739,7 +738,7 @@ async def test_note_type_validation(
 
     # Invalid: empty content
     response = await client.post(
-        "/api/v1/evidence",
+        "/api/evidence",
         json={
             "type": "note",
             "title": "Empty Content",
@@ -769,7 +768,7 @@ async def test_full_text_search_on_title_and_description(
             "title": "Risk Assessment Report",
             "description": "Comprehensive risk assessment and compliance review for AI system deployment",
             "tags": ["risk", "compliance"],
-            "type_metadata": {"content": "Risk analysis content"},        
+            "type_metadata": {"content": "Risk analysis content"},
         },
         {
             "type": "note",
@@ -803,14 +802,14 @@ async def test_full_text_search_on_title_and_description(
 
     for item in evidence_items:
         await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json=item,
             headers={"Authorization": f"Bearer {token}"},
         )
 
     # Test 1: Search for "risk" (should match title and description)
     response = await client.get(
-        "/api/v1/evidence?search=risk",
+        "/api/evidence?search=risk",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -820,7 +819,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 2: Search for "compliance" (should match multiple items)
     response = await client.get(
-        "/api/v1/evidence?search=compliance",
+        "/api/evidence?search=compliance",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -832,7 +831,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 3: Search for "training" (should match description)
     response = await client.get(
-        "/api/v1/evidence?search=training",
+        "/api/evidence?search=training",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -842,7 +841,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 4: Search for "bias" (should match title)
     response = await client.get(
-        "/api/v1/evidence?search=bias",
+        "/api/evidence?search=bias",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -852,7 +851,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 5: Multi-word search "AI system"
     response = await client.get(
-        "/api/v1/evidence?search=AI system",
+        "/api/evidence?search=AI system",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -862,7 +861,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 6: Search with no results
     response = await client.get(
-        "/api/v1/evidence?search=nonexistentterm",
+        "/api/evidence?search=nonexistentterm",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -872,7 +871,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 7: Combine search with type filter
     response = await client.get(
-        "/api/v1/evidence?search=compliance&type=url",
+        "/api/evidence?search=compliance&type=url",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -881,7 +880,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 8: Combine search with tag filter
     response = await client.get(
-        "/api/v1/evidence?search=compliance&tags=gdpr",
+        "/api/evidence?search=compliance&tags=gdpr",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -891,7 +890,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 9: Test pagination with search
     response = await client.get(
-        "/api/v1/evidence?search=compliance&limit=1&offset=0",
+        "/api/evidence?search=compliance&limit=1&offset=0",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -903,7 +902,7 @@ async def test_full_text_search_on_title_and_description(
 
     # Test 10: Verify response structure
     response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -928,9 +927,8 @@ async def test_orphaned_evidence_filter(
     test_version,
 ):
     """Test filtering evidence by orphaned status (no mappings vs has mappings)."""
-    from tests.conftest import create_evidence_item, create_evidence_mapping
-
     from src.models.enums import MappingStrength, MappingTargetType
+    from tests.conftest import create_evidence_item, create_evidence_mapping
 
     token = create_access_token({"sub": str(test_editor_user.id)})
 
@@ -1016,7 +1014,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 1: Get all evidence (no orphaned filter)
     response = await client.get(
-        "/api/v1/evidence",
+        "/api/evidence",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1033,7 +1031,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 2: Filter for orphaned evidence only (orphaned=true)
     response = await client.get(
-        "/api/v1/evidence?orphaned=true",
+        "/api/evidence?orphaned=true",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1051,7 +1049,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 3: Filter for mapped evidence only (orphaned=false)
     response = await client.get(
-        "/api/v1/evidence?orphaned=false",
+        "/api/evidence?orphaned=false",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1069,7 +1067,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 4: Combine orphaned filter with search
     response = await client.get(
-        "/api/v1/evidence?orphaned=true&search=Evidence 1",
+        "/api/evidence?orphaned=true&search=Evidence 1",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1079,7 +1077,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 5: Combine orphaned filter with tags
     response = await client.get(
-        "/api/v1/evidence?orphaned=true&tags=orphan",
+        "/api/evidence?orphaned=true&tags=orphan",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1088,7 +1086,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 6: Combine orphaned=false with tags
     response = await client.get(
-        "/api/v1/evidence?orphaned=false&tags=mapped",
+        "/api/evidence?orphaned=false&tags=mapped",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1097,7 +1095,7 @@ async def test_orphaned_evidence_filter(
 
     # Test 7: Verify pagination works with orphaned filter
     response = await client.get(
-        "/api/v1/evidence?orphaned=true&limit=1&offset=0",
+        "/api/evidence?orphaned=true&limit=1&offset=0",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
@@ -1140,7 +1138,7 @@ async def test_duplicate_checksum_detection(
 
             # Step 1: Upload first file
             first_response = await client.post(
-                "/api/v1/evidence",
+                "/api/evidence",
                 json={
                     "type": "upload",
                     "title": "First Upload",
@@ -1163,7 +1161,7 @@ async def test_duplicate_checksum_detection(
 
             # Step 2: Upload second file with same checksum
             second_response = await client.post(
-                "/api/v1/evidence",
+                "/api/evidence",
                 json={
                     "type": "upload",
                     "title": "Second Upload (Duplicate)",
@@ -1188,7 +1186,7 @@ async def test_duplicate_checksum_detection(
 
             # Both evidence items should exist in database
             list_response = await client.get(
-                "/api/v1/evidence?type=upload",
+                "/api/evidence?type=upload",
                 headers={"Authorization": f"Bearer {token}"},
             )
             assert list_response.status_code == 200

@@ -1,15 +1,14 @@
 """AI System service for CRUD operations."""
-from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.models.ai_system import AISystem
-from src.models.enums import HRUseCaseType, AuditAction
+from src.models.enums import AuditAction, HRUseCaseType
 from src.models.user import User
 from src.schemas.ai_system import CreateSystemRequest, UpdateSystemRequest
 from src.services.audit_service import AuditService
@@ -66,7 +65,7 @@ class AISystemService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"System with name '{request.name}' already exists in this organization",
-            )
+            ) from None
 
         # Log audit event
         await self.audit_service.log(
@@ -84,7 +83,7 @@ class AISystemService:
     async def list(
         self,
         org_id: UUID,
-        use_case_type: Optional[HRUseCaseType] = None,
+        use_case_type: HRUseCaseType | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[AISystem], int]:
@@ -135,7 +134,7 @@ class AISystemService:
         self,
         system_id: UUID,
         org_id: UUID,
-    ) -> Optional[AISystem]:
+    ) -> AISystem | None:
         """Get an AI system by ID.
 
         Args:
@@ -240,7 +239,7 @@ class AISystemService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"System with name '{request.name}' already exists in this organization",
-            )
+            ) from None
 
         # Log audit event
         if changes:

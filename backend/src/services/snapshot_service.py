@@ -1,12 +1,11 @@
 """Snapshot service for deterministic hash computation."""
 import hashlib
 import json
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from src.core.manifest import (
-    SystemManifest,
     SystemInfo,
+    SystemManifest,
     VersionInfo,
 )
 from src.models.ai_system import AISystem
@@ -38,7 +37,7 @@ class SnapshotService:
         """
         return SystemManifest(
             manifest_version="1.0",
-            generated_at=datetime.now(timezone.utc),
+            generated_at=datetime.now(UTC),
             system=SystemInfo(
                 id=ai_system.id,
                 name=ai_system.name,

@@ -1,7 +1,7 @@
 """High-risk assessment model for AI system evaluation."""
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index
+from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from src.models.base import BaseModel

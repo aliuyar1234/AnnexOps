@@ -10,14 +10,14 @@ Implements security measures per research.md:
 """
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.security import hash_password, validate_password, PasswordValidationError
+from src.core.security import PasswordValidationError, hash_password, validate_password
 from src.models.enums import AuditAction, UserRole
 from src.models.invitation import Invitation
 from src.models.user import User
@@ -88,7 +88,7 @@ class InvitationService:
             role=role,
             token_hash=token_hash,
             invited_by=invited_by_user.id,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7)
+            expires_at=datetime.now(UTC) + timedelta(days=7)
         )
 
         self.db.add(invitation)
@@ -137,7 +137,7 @@ class InvitationService:
         invitation = await self._validate_token(token)
 
         # Check if invitation has expired
-        if invitation.expires_at < datetime.now(timezone.utc):
+        if invitation.expires_at < datetime.now(UTC):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invitation has expired"
@@ -157,7 +157,7 @@ class InvitationService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
-            )
+            ) from None
 
         # Create user account
         user = User(
@@ -172,7 +172,7 @@ class InvitationService:
         await self.db.flush()
 
         # Mark invitation as accepted
-        invitation.accepted_at = datetime.now(timezone.utc)
+        invitation.accepted_at = datetime.now(UTC)
         await self.db.flush()
 
         # Log audit event
@@ -254,7 +254,7 @@ class InvitationService:
                 Invitation.email == email,
                 Invitation.org_id == org_id,
                 Invitation.accepted_at.is_(None),  # Not yet accepted
-                Invitation.expires_at > datetime.now(timezone.utc)  # Not expired
+                Invitation.expires_at > datetime.now(UTC)  # Not expired
             )
         )
         return result.scalar_one_or_none()

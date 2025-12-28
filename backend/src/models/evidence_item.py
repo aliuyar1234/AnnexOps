@@ -1,9 +1,11 @@
 """Evidence Item model."""
-from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
+from sqlalchemy import Column, ForeignKey, String, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import relationship
+
 from src.models.base import BaseModel
-from src.models.enums import EvidenceType, Classification
+from src.models.enums import Classification, EvidenceType
 
 
 class EvidenceItem(BaseModel):

@@ -382,7 +382,7 @@ async def update_evidence(
 
     # Convert to response
     base_response = _evidence_to_response(evidence)
-    version_summaries = [VersionSummary(**v) for v in mapped_versions]    
+    version_summaries = [VersionSummary(**v) for v in mapped_versions]
 
     return EvidenceDetailResponse(
         **base_response.model_dump(exclude={"usage_count"}),

@@ -1,11 +1,9 @@
 """Export model for Annex IV documentation exports."""
-from sqlalchemy import Column, String, BigInteger, Boolean, Numeric, ForeignKey
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.models.base import BaseModel
-from src.models.enums import ExportType
 
 
 class Export(BaseModel):

@@ -2,10 +2,11 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.security import create_access_token
+from src.models.enums import UserRole
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.enums import UserRole
-from src.core.security import create_access_token
 
 
 @pytest.mark.asyncio

@@ -81,10 +81,17 @@ class StorageClient:
         """
         storage_path = self._generate_path(org_id, system_id, file_id, extension)
 
-        # Read file content for checksum and size
-        content = file.read()
-        file_size = len(content)
-        checksum = hashlib.sha256(content).hexdigest()
+        # Compute checksum and size without loading the whole file into memory
+        file.seek(0)
+        checksum_hasher = hashlib.sha256()
+        file_size = 0
+        while True:
+            chunk = file.read(1024 * 1024)
+            if not chunk:
+                break
+            checksum_hasher.update(chunk)
+            file_size += len(chunk)
+        checksum = checksum_hasher.hexdigest()
 
         # Reset file position for upload
         file.seek(0)
@@ -92,12 +99,16 @@ class StorageClient:
         self._client.put_object(
             Bucket=self._bucket,
             Key=storage_path,
-            Body=content,
+            Body=file,
+            ContentLength=file_size,
             ContentType=content_type,
             Metadata={
                 "checksum-sha256": checksum,
             },
         )
+
+        # Reset for potential further reads by callers
+        file.seek(0)
 
         return storage_path, checksum, file_size
 

@@ -1,5 +1,4 @@
 """API routes for evidence mappings."""
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -7,16 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import get_current_user, require_role
 from src.core.database import get_db
-from src.models.enums import UserRole, MappingTargetType
+from src.models.enums import MappingTargetType, UserRole
 from src.models.user import User
+from src.schemas.evidence import EvidenceResponse
 from src.schemas.mapping import (
     CreateMappingRequest,
     MappingResponse,
     MappingWithEvidence,
 )
-from src.schemas.evidence import EvidenceResponse
 from src.services.mapping_service import MappingService
-
 
 router = APIRouter()
 
@@ -115,8 +113,8 @@ async def create_mapping(
 async def list_mappings(
     system_id: UUID,
     version_id: UUID,
-    target_type: Optional[MappingTargetType] = Query(None, description="Filter by target type"),
-    target_key: Optional[str] = Query(None, description="Filter by target key (exact match or prefix with *)"),
+    target_type: MappingTargetType | None = Query(None, description="Filter by target type"),
+    target_key: str | None = Query(None, description="Filter by target key (exact match or prefix with *)"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
     offset: int = Query(0, ge=0, description="Number of results to skip"),
     db: AsyncSession = Depends(get_db),

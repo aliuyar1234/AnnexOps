@@ -1,22 +1,27 @@
 """Version service for CRUD operations on system versions."""
 import re
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.system_version import SystemVersion
-from src.models.ai_system import AISystem
-from src.models.enums import VersionStatus, AuditAction, UserRole
-from src.models.user import User
-from src.schemas.version import CreateVersionRequest, StatusChangeRequest, UpdateVersionRequest, CloneVersionRequest
-from src.services.audit_service import AuditService
 from src.core.version_workflow import is_valid_transition
+from src.models.ai_system import AISystem
+from src.models.enums import AuditAction, UserRole, VersionStatus
+from src.models.export import Export
+from src.models.system_version import SystemVersion
+from src.models.user import User
+from src.schemas.version import (
+    CloneVersionRequest,
+    CreateVersionRequest,
+    StatusChangeRequest,
+    UpdateVersionRequest,
+)
+from src.services.audit_service import AuditService
 
 
 class VersionService:
@@ -132,7 +137,7 @@ class VersionService:
             HTTPException: 409 if label already exists
         """
         # Verify system exists and user has access
-        ai_system = await self._get_ai_system(system_id, current_user.org_id)
+        await self._get_ai_system(system_id, current_user.org_id)
 
         # Validate label format
         self._validate_label(request.label)
@@ -158,7 +163,7 @@ class VersionService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Version with label '{request.label}' already exists for this AI system",
-            )
+            ) from None
 
         # Log audit event
         await self.audit_service.log(
@@ -187,7 +192,7 @@ class VersionService:
         self,
         system_id: UUID,
         org_id: UUID,
-        status_filter: Optional[VersionStatus] = None,
+        status_filter: VersionStatus | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[SystemVersion], int]:
@@ -533,7 +538,7 @@ class VersionService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Version with label '{request.label}' already exists for this AI system",
-            )
+            ) from None
 
         # Log audit event
         await self.audit_service.log(
@@ -559,15 +564,12 @@ class VersionService:
         result = await self.db.execute(query)
         return result.scalar_one()
 
-    def _is_mutable(self, version: SystemVersion) -> bool:
+    async def _is_mutable(self, version: SystemVersion) -> bool:
         """Check if a version is mutable (can be modified/deleted).
 
         A version is immutable if:
         - Status is APPROVED AND
-        - Has exports (when exports table exists in Module E)
-
-        For Phase 8, since exports table doesn't exist yet,
-        all versions are mutable (placeholder implementation).
+        - One or more exports exist for the version
 
         Args:
             version: SystemVersion instance to check
@@ -575,13 +577,12 @@ class VersionService:
         Returns:
             True if version can be modified/deleted, False if immutable
         """
-        # TODO: When exports table exists (Module E), add check:
-        # if version.status == VersionStatus.APPROVED and version.has_exports:
-        #     return False
-        # return True
+        if version.status != VersionStatus.APPROVED:
+            return True
 
-        # For now: all versions are mutable (exports not implemented)
-        return True
+        export_count_query = select(func.count()).select_from(Export).where(Export.version_id == version.id)
+        export_count = await self.db.scalar(export_count_query)
+        return int(export_count or 0) == 0
 
     async def delete(
         self,
@@ -604,7 +605,7 @@ class VersionService:
         version = await self._get_version(system_id, version_id, current_user.org_id)
 
         # Check if version is mutable
-        if not self._is_mutable(version):
+        if not await self._is_mutable(version):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Cannot delete immutable version (approved with exports)",

@@ -4,11 +4,10 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token
-from src.models.organization import Organization
-from src.models.user import User
 from src.models.ai_system import AISystem
+from src.models.organization import Organization
 from src.models.system_version import SystemVersion
-from src.models.enums import VersionStatus
+from src.models.user import User
 
 
 @pytest.mark.asyncio

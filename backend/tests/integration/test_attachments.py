@@ -1,14 +1,15 @@
 """Integration tests for attachment operations."""
 import io
+from unittest.mock import MagicMock, patch
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import patch, MagicMock
 
 from src.core.security import create_access_token
+from src.models.ai_system import AISystem
 from src.models.organization import Organization
 from src.models.user import User
-from src.models.ai_system import AISystem
 
 
 @pytest.mark.asyncio

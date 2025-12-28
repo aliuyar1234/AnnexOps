@@ -1,5 +1,4 @@
 """API routes for system attachments."""
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
@@ -10,10 +9,9 @@ from src.api.deps import require_role
 from src.core.database import get_db
 from src.models.enums import UserRole
 from src.models.user import User
-from src.schemas.attachment import AttachmentResponse
 from src.schemas.ai_system import UserSummary
+from src.schemas.attachment import AttachmentResponse
 from src.services.attachment_service import AttachmentService
-
 
 router = APIRouter()
 
@@ -44,7 +42,7 @@ async def upload_attachment(
     system_id: UUID,
     file: UploadFile = File(...),
     title: str = Form(...),
-    description: Optional[str] = Form(None),
+    description: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.EDITOR)),
 ) -> AttachmentResponse:

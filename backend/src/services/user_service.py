@@ -1,11 +1,12 @@
 """User service for managing user CRUD operations and RBAC."""
-from typing import Optional
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+
 from fastapi import HTTPException, status
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models.enums import AuditAction, UserRole
 from src.models.user import User
-from src.models.enums import UserRole, AuditAction
 from src.services.audit_service import AuditService
 
 
@@ -24,7 +25,7 @@ class UserService:
     async def list_users(
         self,
         org_id: UUID,
-        role_filter: Optional[str] = None,
+        role_filter: str | None = None,
     ) -> list[User]:
         """List all users in an organization.
 
@@ -46,7 +47,7 @@ class UserService:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid role: {role_filter}"
-                )
+                ) from None
 
         result = await self.db.execute(query)
         users = result.scalars().all()
@@ -99,7 +100,7 @@ class UserService:
                 and_(
                     User.org_id == org_id,
                     User.role == UserRole.ADMIN,
-                    User.is_active == True
+                    User.is_active.is_(True)
                 )
             )
         )
@@ -125,8 +126,8 @@ class UserService:
         user_id: UUID,
         org_id: UUID,
         current_user: User,
-        role: Optional[str] = None,
-        is_active: Optional[bool] = None,
+        role: str | None = None,
+        is_active: bool | None = None,
     ) -> User:
         """Update user information.
 
@@ -170,7 +171,7 @@ class UserService:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid role: {role}"
-                )
+                ) from None
 
         # Update active status if provided
         if is_active is not None:

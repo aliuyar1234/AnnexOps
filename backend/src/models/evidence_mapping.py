@@ -1,9 +1,11 @@
 """Evidence Mapping model."""
-from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
 from src.models.base import BaseModel
-from src.models.enums import MappingTargetType, MappingStrength
+from src.models.enums import MappingStrength, MappingTargetType
 
 
 class EvidenceMapping(BaseModel):

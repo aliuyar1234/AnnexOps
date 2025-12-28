@@ -26,7 +26,7 @@ class TestViewerEvidenceAccess:
         # Create some evidence as editor
         editor_token = create_access_token({"sub": str(test_editor_user.id)})
         await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "Test Evidence",
@@ -38,7 +38,7 @@ class TestViewerEvidenceAccess:
         # Viewer should be able to list evidence
         viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
         response = await client.get(
-            "/api/v1/evidence",
+            "/api/evidence",
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
 
@@ -58,7 +58,7 @@ class TestViewerEvidenceAccess:
         # Create evidence as editor
         editor_token = create_access_token({"sub": str(test_editor_user.id)})
         create_response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "Test Evidence Detail",
@@ -72,7 +72,7 @@ class TestViewerEvidenceAccess:
         # Viewer should be able to get evidence details
         viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
         response = await client.get(
-            f"/api/v1/evidence/{evidence_id}",
+            f"/api/evidence/{evidence_id}",
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
 
@@ -118,7 +118,7 @@ class TestViewerEvidenceAccess:
 
                 # Create upload-type evidence as editor
                 create_response = await client.post(
-                    "/api/v1/evidence",
+                    "/api/evidence",
                     json={
                         "type": "upload",
                         "title": "Downloadable Evidence",
@@ -137,7 +137,7 @@ class TestViewerEvidenceAccess:
                 # Viewer should be able to download evidence
                 viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
                 response = await client.get(
-                    f"/api/v1/evidence/{evidence_id}/download",
+                    f"/api/evidence/{evidence_id}/download",
                     headers={"Authorization": f"Bearer {viewer_token}"},
                     follow_redirects=False,
                 )
@@ -156,7 +156,7 @@ class TestViewerEvidenceAccess:
         viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
 
         response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "Unauthorized Evidence",
@@ -180,7 +180,7 @@ class TestViewerEvidenceAccess:
         # Create evidence as editor
         editor_token = create_access_token({"sub": str(test_editor_user.id)})
         create_response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "Original Title",
@@ -193,7 +193,7 @@ class TestViewerEvidenceAccess:
         # Viewer should not be able to update evidence
         viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
         response = await client.patch(
-            f"/api/v1/evidence/{evidence_id}",
+            f"/api/evidence/{evidence_id}",
             json={"title": "Updated Title"},
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
@@ -213,7 +213,7 @@ class TestViewerEvidenceAccess:
         # Create evidence as editor
         editor_token = create_access_token({"sub": str(test_editor_user.id)})
         create_response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "To Be Deleted",
@@ -226,7 +226,7 @@ class TestViewerEvidenceAccess:
         # Viewer should not be able to delete evidence
         viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
         response = await client.delete(
-            f"/api/v1/evidence/{evidence_id}",
+            f"/api/evidence/{evidence_id}",
             headers={"Authorization": f"Bearer {viewer_token}"},
         )
 
@@ -249,7 +249,7 @@ class TestEditorEvidenceAccess:
         editor_token = create_access_token({"sub": str(test_editor_user.id)})
 
         response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "Editor Created Evidence",
@@ -276,7 +276,7 @@ class TestEditorEvidenceAccess:
 
         # Create evidence
         create_response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "Original Title",
@@ -288,7 +288,7 @@ class TestEditorEvidenceAccess:
 
         # Update evidence
         update_response = await client.patch(
-            f"/api/v1/evidence/{evidence_id}",
+            f"/api/evidence/{evidence_id}",
             json={
                 "title": "Updated Title",
                 "description": "Updated description",
@@ -315,7 +315,7 @@ class TestEditorEvidenceAccess:
 
         # Create evidence
         create_response = await client.post(
-            "/api/v1/evidence",
+            "/api/evidence",
             json={
                 "type": "note",
                 "title": "To Be Deleted",
@@ -327,7 +327,7 @@ class TestEditorEvidenceAccess:
 
         # Delete evidence
         delete_response = await client.delete(
-            f"/api/v1/evidence/{evidence_id}",
+            f"/api/evidence/{evidence_id}",
             headers={"Authorization": f"Bearer {editor_token}"},
         )
 
@@ -335,7 +335,7 @@ class TestEditorEvidenceAccess:
 
         # Verify deletion
         get_response = await client.get(
-            f"/api/v1/evidence/{evidence_id}",
+            f"/api/evidence/{evidence_id}",
             headers={"Authorization": f"Bearer {editor_token}"},
         )
         assert get_response.status_code == 404

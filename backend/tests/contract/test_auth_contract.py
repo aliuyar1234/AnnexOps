@@ -5,8 +5,9 @@ defined in specs/001-org-auth/contracts/openapi.yaml
 """
 import pytest
 from httpx import AsyncClient
-from src.models.user import User
+
 from src.models.organization import Organization
+from src.models.user import User
 
 
 @pytest.mark.asyncio
@@ -164,10 +165,8 @@ class TestRefreshContract:
         assert refresh_token is not None
 
         # Refresh token
-        response = await client.post(
-            "/api/auth/refresh",
-            cookies={"refresh_token": refresh_token}
-        )
+        client.cookies.set("refresh_token", refresh_token)
+        response = await client.post("/api/auth/refresh")
 
         assert response.status_code == 200
         data = response.json()
@@ -184,10 +183,8 @@ class TestRefreshContract:
         client: AsyncClient
     ):
         """Test refresh with invalid token returns 401."""
-        response = await client.post(
-            "/api/auth/refresh",
-            cookies={"refresh_token": "invalid_token"}
-        )
+        client.cookies.set("refresh_token", "invalid_token")
+        response = await client.post("/api/auth/refresh")
 
         assert response.status_code == 401
         data = response.json()

@@ -1,19 +1,19 @@
 """Attachment service for file upload/download operations."""
+import os
 import uuid
 from uuid import UUID
 
-from fastapi import HTTPException, status, UploadFile
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.ai_system import AISystem
-from src.models.system_attachment import SystemAttachment
-from src.models.enums import AuditAction
-from src.models.user import User
 from src.core.storage import get_storage_client
+from src.models.ai_system import AISystem
+from src.models.enums import AuditAction
+from src.models.system_attachment import SystemAttachment
+from src.models.user import User
 from src.services.audit_service import AuditService
-
 
 # Maximum file size: 50MB
 MAX_FILE_SIZE = 50 * 1024 * 1024
@@ -114,14 +114,21 @@ class AttachmentService:
             HTTPException: 415 if unsupported media type
         """
         # Verify system exists
-        system = await self.get_system(system_id, current_user.org_id)
+        await self.get_system(system_id, current_user.org_id)
 
-        # Validate file size
-        content = await file.read()
-        file_size = len(content)
+        # Validate file size without reading into memory
+        try:
+            file.file.seek(0, os.SEEK_END)
+            file_size = int(file.file.tell())
+            file.file.seek(0)
+        except Exception:
+            content = await file.read()
+            file_size = len(content)
+            await file.seek(0)
+
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB",
             )
 
@@ -132,9 +139,6 @@ class AttachmentService:
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                 detail=f"File type '{content_type}' is not allowed",
             )
-
-        # Reset file position
-        await file.seek(0)
 
         # Generate file ID
         file_id = uuid.uuid4()

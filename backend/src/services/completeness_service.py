@@ -1,15 +1,16 @@
 """Completeness calculation service for Annex IV documentation."""
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.annex_section import AnnexSection
+
 from src.core.section_schemas import SECTION_SCHEMAS, SECTION_WEIGHTS
+from src.models.annex_section import AnnexSection
 from src.schemas.completeness import (
     CompletenessResponse,
-    SectionCompletenessItem,
     GapItem,
+    SectionCompletenessItem,
 )
-
 
 # Human-readable section titles
 SECTION_TITLES = {

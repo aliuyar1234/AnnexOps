@@ -4,8 +4,8 @@ Schemas for user CRUD operations and RBAC.
 """
 from datetime import datetime
 from uuid import UUID
-from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserResponse(BaseModel):
@@ -20,7 +20,7 @@ class UserResponse(BaseModel):
     email: str = Field(..., description="User email address")
     role: str = Field(..., description="User role (admin, editor, reviewer, viewer)")
     is_active: bool = Field(..., description="Whether user account is active")
-    last_login_at: Optional[datetime] = Field(None, description="Last login timestamp")
+    last_login_at: datetime | None = Field(None, description="Last login timestamp")
     created_at: datetime = Field(..., description="Account creation timestamp")
 
 
@@ -49,12 +49,12 @@ class UserUpdateRequest(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    role: Optional[str] = Field(
+    role: str | None = Field(
         None,
         description="User role (admin, editor, reviewer, viewer). Admin-only.",
         pattern="^(admin|editor|reviewer|viewer)$"
     )
-    is_active: Optional[bool] = Field(
+    is_active: bool | None = Field(
         None,
         description="Account active status. Admin-only."
     )

@@ -1,5 +1,4 @@
 """API routes for AI systems."""
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -11,14 +10,13 @@ from src.models.enums import HRUseCaseType, UserRole
 from src.models.user import User
 from src.schemas.ai_system import (
     CreateSystemRequest,
-    UpdateSystemRequest,
-    SystemResponse,
     SystemDetailResponse,
     SystemListResponse,
+    SystemResponse,
+    UpdateSystemRequest,
     UserSummary,
 )
 from src.services.ai_system_service import AISystemService
-
 
 router = APIRouter()
 
@@ -102,7 +100,7 @@ async def create_system(
     summary="List AI systems",
 )
 async def list_systems(
-    use_case_type: Optional[HRUseCaseType] = Query(None),
+    use_case_type: HRUseCaseType | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),

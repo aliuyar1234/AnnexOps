@@ -2,14 +2,14 @@
 
 Tests password hashing, JWT token creation and validation.
 """
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 from src.core.security import (
-    hash_password,
-    verify_password,
     create_access_token,
     create_refresh_token,
-    decode_token
+    decode_token,
+    hash_password,
+    verify_password,
 )
 
 
@@ -77,16 +77,16 @@ class TestJWTAccessToken:
         expires_delta = timedelta(minutes=60)
 
         # Capture time before token creation
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         token = create_access_token(data, expires_delta)
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         assert token is not None
         payload = decode_token(token)
         assert payload is not None
 
         # Verify expiry is set correctly (use timezone-aware datetime)
-        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
         expected_min = before + expires_delta - timedelta(seconds=1)
         expected_max = after + expires_delta + timedelta(seconds=1)
 
@@ -132,8 +132,8 @@ class TestJWTAccessToken:
         assert isinstance(payload["exp"], int)
 
         # Verify expiry is in future (use timezone-aware datetime)
-        exp_datetime = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
-        assert exp_datetime > datetime.now(timezone.utc)
+        exp_datetime = datetime.fromtimestamp(payload["exp"], tz=UTC)
+        assert exp_datetime > datetime.now(UTC)
 
 
 class TestJWTRefreshToken:
@@ -153,14 +153,14 @@ class TestJWTRefreshToken:
         data = {"sub": "user123"}
 
         # Capture time before token creation
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         token = create_refresh_token(data)
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         payload = decode_token(token)
         assert payload is not None
 
-        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
         expected_min = before + timedelta(days=7) - timedelta(seconds=1)
         expected_max = after + timedelta(days=7) + timedelta(seconds=1)
 

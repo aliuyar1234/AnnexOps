@@ -1,14 +1,13 @@
 """Integration tests for Annex IV section functionality."""
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.organization import Organization
-from src.models.user import User
-from src.models.ai_system import AISystem
-from src.models.system_version import SystemVersion
 from src.models.annex_section import AnnexSection
 from src.models.enums import AnnexSectionKey
+from src.models.organization import Organization
+from src.models.system_version import SystemVersion
+from src.models.user import User
 from src.services.section_service import SectionService
 
 

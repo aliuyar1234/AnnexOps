@@ -4,7 +4,8 @@ Schemas match the OpenAPI contract defined in specs/001-org-auth/contracts/opena
 """
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class CreateOrganizationRequest(BaseModel):
@@ -74,5 +75,4 @@ class OrganizationResponse(BaseModel):
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last modification timestamp")
 
-    class Config:
-        from_attributes = True  # Pydantic v2 (was orm_mode in v1)
+    model_config = ConfigDict(from_attributes=True)

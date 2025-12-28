@@ -1,9 +1,8 @@
 """Section schemas and weights for Annex IV documentation."""
 
-from typing import Dict, List
 
 # Section schemas define required fields for each Annex IV section
-SECTION_SCHEMAS: Dict[str, List[str]] = {
+SECTION_SCHEMAS: dict[str, list[str]] = {
     "ANNEX4.GENERAL": [
         "provider_name",
         "provider_address",
@@ -90,7 +89,7 @@ SECTION_SCHEMAS: Dict[str, List[str]] = {
 # Section weights for completeness calculation
 # These weights determine the relative importance of each section
 # Total should sum to 100 for percentage calculation
-SECTION_WEIGHTS: Dict[str, float] = {
+SECTION_WEIGHTS: dict[str, float] = {
     "ANNEX4.GENERAL": 5.0,
     "ANNEX4.INTENDED_PURPOSE": 8.0,
     "ANNEX4.SYSTEM_DESCRIPTION": 10.0,
@@ -106,7 +105,7 @@ SECTION_WEIGHTS: Dict[str, float] = {
 }
 
 
-def get_section_completeness(section_key: str, content: Dict) -> float:
+def get_section_completeness(section_key: str, content: dict) -> float:
     """Calculate completeness score for a section.
 
     Args:
@@ -131,7 +130,7 @@ def get_section_completeness(section_key: str, content: Dict) -> float:
     return round((filled_fields / len(required_fields)) * 100, 2)
 
 
-def get_overall_completeness(sections: Dict[str, Dict]) -> float:
+def get_overall_completeness(sections: dict[str, dict]) -> float:
     """Calculate overall completeness across all sections.
 
     Args:

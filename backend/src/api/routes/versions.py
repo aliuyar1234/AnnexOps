@@ -1,31 +1,29 @@
 """API routes for system versions."""
-from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import get_current_user, require_role
 from src.core.database import get_db
 from src.models.enums import UserRole, VersionStatus
 from src.models.user import User
+from src.schemas.completeness import CompletenessResponse
 from src.schemas.version import (
-    CreateVersionRequest,
-    VersionResponse,
-    VersionListResponse,
-    UserSummary,
-    StatusChangeRequest,
-    VersionDiffResponse,
-    UpdateVersionRequest,
-    VersionDetailResponse,
     CloneVersionRequest,
+    CreateVersionRequest,
+    StatusChangeRequest,
+    UpdateVersionRequest,
+    UserSummary,
+    VersionDetailResponse,
+    VersionDiffResponse,
+    VersionListResponse,
+    VersionResponse,
 )
-from src.services.version_service import VersionService
+from src.services.completeness_service import get_completeness_report
 from src.services.diff_service import DiffService
 from src.services.snapshot_service import SnapshotService
-from src.services.completeness_service import get_completeness_report
-from src.schemas.completeness import CompletenessResponse
-
+from src.services.version_service import VersionService
 
 router = APIRouter()
 
@@ -107,7 +105,7 @@ async def create_version(
 )
 async def list_versions(
     system_id: UUID,
-    status: Optional[VersionStatus] = Query(None),
+    status: VersionStatus | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -196,7 +194,7 @@ async def compare_versions(
     if from_ver.ai_system_id != to_ver.ai_system_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot compare versions from different AI systems",   
+            detail="Cannot compare versions from different AI systems",
         )
 
     # Ensure versions belong to requested system

@@ -3,20 +3,25 @@
 Implements organization management endpoints per OpenAPI spec in
 specs/001-org-auth/contracts/openapi.yaml
 """
+import hmac
 from uuid import UUID
-from fastapi import APIRouter, Depends, status
+
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.database import get_db
+
 from src.api.deps import get_current_user, require_admin
+from src.core.config import get_settings
+from src.core.database import get_db
 from src.models.user import User
 from src.schemas.organization import (
     CreateOrganizationRequest,
     OrganizationResponse,
-    OrganizationUpdateRequest
+    OrganizationUpdateRequest,
 )
 from src.services.org_service import OrganizationService
 
 router = APIRouter()
+settings = get_settings()
 
 
 @router.post(
@@ -28,7 +33,8 @@ router = APIRouter()
 )
 async def create_organization(
     request: CreateOrganizationRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    bootstrap_token: str = Header(..., alias="X-Bootstrap-Token"),
 ) -> OrganizationResponse:
     """Create organization with initial admin user (bootstrap).
 
@@ -46,6 +52,17 @@ async def create_organization(
         HTTPException: 409 if organization already exists
         HTTPException: 422 if validation fails
     """
+    if not settings.bootstrap_token:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Bootstrap is disabled. Configure BOOTSTRAP_TOKEN to enable it.",
+        )
+    if not hmac.compare_digest(bootstrap_token, settings.bootstrap_token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid bootstrap token",
+        )
+
     service = OrganizationService(db)
     organization = await service.create(
         name=request.name,

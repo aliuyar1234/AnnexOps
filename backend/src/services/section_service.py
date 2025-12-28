@@ -1,6 +1,6 @@
 """Service for managing Annex IV sections."""
-from uuid import UUID
 from decimal import Decimal
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -8,12 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.models.annex_section import AnnexSection
+from src.models.enums import AnnexSectionKey, AuditAction, VersionStatus
 from src.models.export import Export
 from src.models.system_version import SystemVersion
-from src.models.enums import AuditAction, AnnexSectionKey, VersionStatus
 from src.models.user import User
 from src.services.audit_service import AuditService
-from src.services.completeness_service import SECTION_TITLES, calculate_section_score
+from src.services.completeness_service import calculate_section_score
 
 
 class SectionService:

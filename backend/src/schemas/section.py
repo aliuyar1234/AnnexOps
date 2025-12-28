@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SectionResponse(BaseModel):
@@ -22,8 +22,7 @@ class SectionResponse(BaseModel):
     last_edited_by: UUID | None = Field(None, description="User ID who last edited this section")
     updated_at: datetime = Field(description="Last update timestamp")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UpdateSectionRequest(BaseModel):
@@ -34,8 +33,8 @@ class UpdateSectionRequest(BaseModel):
         None, description="List of evidence item IDs to associate with this section"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": {
                     "introduction": "This section describes our risk management approach...",
@@ -46,7 +45,8 @@ class UpdateSectionRequest(BaseModel):
                     "987fcdeb-51a2-43f7-b9d8-1234567890ab",
                 ],
             }
-        }
+        },
+    )
 
 
 class SectionListResponse(BaseModel):
@@ -55,8 +55,8 @@ class SectionListResponse(BaseModel):
     items: list[SectionResponse] = Field(description="List of sections")
     total: int = Field(description="Total number of sections")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "items": [
                     {
@@ -74,4 +74,5 @@ class SectionListResponse(BaseModel):
                 ],
                 "total": 12,
             }
-        }
+        },
+    )

@@ -1,7 +1,9 @@
 """AuditEvent model."""
-from sqlalchemy import Column, String, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
+from sqlalchemy import Column, ForeignKey, String
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
 from sqlalchemy.orm import relationship
+
 from src.models.base import BaseModel
 from src.models.enums import AuditAction
 

@@ -1,12 +1,11 @@
 """Unit tests for high-risk assessment scoring logic."""
-import pytest
 
 from src.core.wizard_questions import (
-    calculate_score,
-    get_result_label,
-    get_checklist,
-    WIZARD_QUESTIONS,
     HIGH_RISK_CHECKLIST,
+    WIZARD_QUESTIONS,
+    calculate_score,
+    get_checklist,
+    get_result_label,
 )
 
 

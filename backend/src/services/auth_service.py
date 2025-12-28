@@ -1,18 +1,19 @@
 """Authentication service for login, logout, and session management."""
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from datetime import UTC, datetime, timedelta
+
 from fastapi import HTTPException, status
-from src.models.user import User
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.core.security import (
-    verify_password,
     create_access_token,
     create_refresh_token,
-    decode_token
+    decode_token,
+    verify_password,
 )
-from src.services.audit_service import AuditService
 from src.models.enums import AuditAction
+from src.models.user import User
+from src.services.audit_service import AuditService
 
 
 class AuthService:
@@ -35,7 +36,7 @@ class AuthService:
         self,
         email: str,
         password: str,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None
     ) -> tuple[str, str, User]:
         """Authenticate user and create session tokens.
 
@@ -76,7 +77,7 @@ class AuthService:
             )
 
         # Check if account is locked
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        if user.locked_until and user.locked_until > datetime.now(UTC):
             # Log lockout attempt
             await self.audit_service.log(
                 org_id=user.org_id,
@@ -104,7 +105,7 @@ class AuthService:
         # Successful login - reset failed attempts and update last login
         user.failed_login_attempts = 0
         user.locked_until = None
-        user.last_login_at = datetime.now(timezone.utc)
+        user.last_login_at = datetime.now(UTC)
         await self.db.flush()
 
         # Create tokens
@@ -127,7 +128,7 @@ class AuthService:
 
         return access_token, refresh_token, user
 
-    async def _handle_failed_login(self, user: User, ip_address: Optional[str] = None):
+    async def _handle_failed_login(self, user: User, ip_address: str | None = None):
         """Handle failed login attempt with exponential backoff lockout.
 
         Increments failed login counter and locks account if threshold exceeded.
@@ -149,7 +150,7 @@ class AuthService:
             lockout_minutes = self.LOCKOUT_DURATIONS[lockout_index]
 
             # Set lockout expiration
-            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_minutes)
+            user.locked_until = datetime.now(UTC) + timedelta(minutes=lockout_minutes)
 
             # Log lockout event
             await self.audit_service.log(
@@ -220,7 +221,7 @@ class AuthService:
     async def logout(
         self,
         user: User,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None
     ):
         """Log out user and invalidate session.
 
