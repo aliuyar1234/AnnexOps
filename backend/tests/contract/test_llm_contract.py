@@ -36,13 +36,16 @@ async def test_post_llm_draft_returns_200(
         duration_ms=10,
     )
 
-    with patch(
-        "src.services.llm_service.LlmService.llm_available",
-        return_value=True,
-    ), patch(
-        "src.services.llm_service.LlmService.generate",
-        new_callable=AsyncMock,
-        return_value=completion,
+    with (
+        patch(
+            "src.services.llm_service.LlmService.llm_available",
+            return_value=True,
+        ),
+        patch(
+            "src.services.llm_service.LlmService.generate",
+            new_callable=AsyncMock,
+            return_value=completion,
+        ),
     ):
         response = await client.post(
             "/api/llm/sections/ANNEX4.RISK_MANAGEMENT/draft",

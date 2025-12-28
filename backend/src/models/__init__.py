@@ -1,4 +1,5 @@
 """SQLAlchemy models."""
+
 from src.models.ai_system import AISystem
 from src.models.annex_section import AnnexSection
 from src.models.audit_event import AuditEvent

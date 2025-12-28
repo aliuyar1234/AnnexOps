@@ -1,4 +1,5 @@
 """Integration tests for Annex IV section functionality."""
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,7 +98,10 @@ async def test_update_content_updates_section_and_recalculates_score(
     # Score should be recalculated and higher than 0
     assert updated_section.completeness_score > 0
     assert updated_section.last_edited_by == test_editor_user.id
-    assert updated_section.content["risk_management_system_description"] == "Our risk management approach"
+    assert (
+        updated_section.content["risk_management_system_description"]
+        == "Our risk management approach"
+    )
 
 
 @pytest.mark.asyncio
@@ -188,7 +192,10 @@ async def test_section_crud_flow(
     )
 
     # 4. Verify updates
-    assert updated_section.content["risk_management_system_description"] == "Comprehensive risk management"
+    assert (
+        updated_section.content["risk_management_system_description"]
+        == "Comprehensive risk management"
+    )
     assert len(updated_section.content["identified_risks"]) == 3
     assert len(updated_section.evidence_refs) == 1
     assert updated_section.last_edited_by == test_editor_user.id

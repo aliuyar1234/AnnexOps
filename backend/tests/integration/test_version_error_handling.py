@@ -1,4 +1,5 @@
 """Integration tests for version error handling (404 and validation)."""
+
 from uuid import uuid4
 
 import pytest

@@ -1,4 +1,5 @@
 """Integration tests for evidence operations."""
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -21,9 +22,7 @@ async def test_full_upload_evidence_flow(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     with patch("src.api.routes.evidence.get_storage_service") as mock_storage_route:
-        with patch(
-            "src.services.evidence_service.EvidenceService._validate_file_upload_metadata"
-        ):
+        with patch("src.services.evidence_service.EvidenceService._validate_file_upload_metadata"):
             # Mock storage service
             mock_storage = Mock()
             storage_uri = f"evidence/{test_org.id}/2025/12/test-file.pdf"
@@ -37,9 +36,7 @@ async def test_full_upload_evidence_flow(
                 "mime_type": "application/pdf",
                 "checksum_sha256": "initial-checksum",
             }
-            mock_storage.compute_checksum.return_value = (
-                "a" * 64
-            )  # Valid SHA-256 length
+            mock_storage.compute_checksum.return_value = "a" * 64  # Valid SHA-256 length
             mock_storage_route.return_value = mock_storage
 
             # Step 1: Get presigned upload URL
@@ -68,16 +65,16 @@ async def test_full_upload_evidence_flow(
                     "type": "upload",
                     "title": "Compliance Report 2025",
                     "description": "Annual compliance documentation",
-                        "tags": ["compliance", "report", "2025"],
-                        "classification": "internal",
-                        "type_metadata": {
-                            "storage_uri": returned_storage_uri,
-                            "checksum_sha256": "a" * 64,
-                            "file_size": 2048,
-                            "mime_type": "application/pdf",
-                            "original_filename": "compliance_report.pdf",
-                        },
+                    "tags": ["compliance", "report", "2025"],
+                    "classification": "internal",
+                    "type_metadata": {
+                        "storage_uri": returned_storage_uri,
+                        "checksum_sha256": "a" * 64,
+                        "file_size": 2048,
+                        "mime_type": "application/pdf",
+                        "original_filename": "compliance_report.pdf",
                     },
+                },
                 headers={"Authorization": f"Bearer {token}"},
             )
 
@@ -153,7 +150,9 @@ async def test_create_different_evidence_types(
     git_evidence = git_response.json()
     assert git_evidence["type"] == "git"
     assert git_evidence["type_metadata"]["repo_url"] == "https://github.com/org/ml-models"
-    assert git_evidence["type_metadata"]["commit_hash"] == "abc123def4567890abcdef1234567890abcdef12"
+    assert (
+        git_evidence["type_metadata"]["commit_hash"] == "abc123def4567890abcdef1234567890abcdef12"
+    )
     assert git_evidence["type_metadata"]["branch"] == "main"
     assert git_evidence["type_metadata"]["file_path"] == "training/model.py"
 
@@ -179,7 +178,9 @@ async def test_create_different_evidence_types(
     assert ticket_evidence["type"] == "ticket"
     assert ticket_evidence["type_metadata"]["ticket_system"] == "jira"
     assert ticket_evidence["type_metadata"]["ticket_id"] == "AI-123"
-    assert ticket_evidence["type_metadata"]["ticket_url"] == "https://jira.company.com/browse/AI-123"
+    assert (
+        ticket_evidence["type_metadata"]["ticket_url"] == "https://jira.company.com/browse/AI-123"
+    )
 
     # Create Note evidence
     note_response = await client.post(
@@ -199,7 +200,10 @@ async def test_create_different_evidence_types(
     assert note_response.status_code == 201
     note_evidence = note_response.json()
     assert note_evidence["type"] == "note"
-    assert note_evidence["type_metadata"]["content"] == "Discussed potential risks and mitigation strategies."
+    assert (
+        note_evidence["type_metadata"]["content"]
+        == "Discussed potential risks and mitigation strategies."
+    )
 
     # Verify all evidence items are in list
     list_response = await client.get(
@@ -422,8 +426,8 @@ async def test_evidence_pagination(
             "/api/evidence",
             json={
                 "type": "note",
-                "title": f"Evidence {i+1}",
-                "type_metadata": {"content": f"Content {i+1}"},
+                "title": f"Evidence {i + 1}",
+                "type_metadata": {"content": f"Content {i + 1}"},
             },
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -454,8 +458,7 @@ async def test_evidence_pagination(
 
     # Verify no duplicates
     all_ids = [
-        item["id"]
-        for item in (page1_data["items"] + page2_data["items"] + page3_data["items"])
+        item["id"] for item in (page1_data["items"] + page2_data["items"] + page3_data["items"])
     ]
     assert len(all_ids) == len(set(all_ids))  # All unique
 
@@ -1117,9 +1120,7 @@ async def test_duplicate_checksum_detection(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     with patch("src.api.routes.evidence.get_storage_service") as mock_storage_route:
-        with patch(
-            "src.services.evidence_service.EvidenceService._validate_file_upload_metadata"
-        ):
+        with patch("src.services.evidence_service.EvidenceService._validate_file_upload_metadata"):
             # Mock storage service
             mock_storage = Mock()
             storage_uri_1 = f"evidence/{test_org.id}/2025/12/file1.pdf"
@@ -1194,8 +1195,5 @@ async def test_duplicate_checksum_detection(
             assert data["total"] == 2
 
             # Verify checksums match
-            checksums = [
-                item["type_metadata"]["checksum_sha256"]
-                for item in data["items"]
-            ]
+            checksums = [item["type_metadata"]["checksum_sha256"] for item in data["items"]]
             assert checksums[0] == checksums[1] == duplicate_checksum

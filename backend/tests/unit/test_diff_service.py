@@ -1,4 +1,5 @@
 """Unit tests for diff service."""
+
 from uuid import uuid4
 
 from src.models.enums import VersionStatus

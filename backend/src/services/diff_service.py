@@ -1,4 +1,5 @@
 """Service for computing differences between system versions."""
+
 from typing import Any
 
 from deepdiff import DeepDiff
@@ -126,11 +127,13 @@ class DiffService:
                 field = path.replace("root['", "").replace("']", "")
                 old_val = change_detail.get("old_value")
                 new_val = change_detail.get("new_value")
-                changes.append({
-                    "field": field,
-                    "old_value": old_val,
-                    "new_value": new_val,
-                })
+                changes.append(
+                    {
+                        "field": field,
+                        "old_value": old_val,
+                        "new_value": new_val,
+                    }
+                )
 
         # Handle type changes (e.g., None -> str, str -> None)
         if "type_changes" in diff:
@@ -138,31 +141,37 @@ class DiffService:
                 field = path.replace("root['", "").replace("']", "")
                 old_val = change_detail.get("old_value")
                 new_val = change_detail.get("new_value")
-                changes.append({
-                    "field": field,
-                    "old_value": old_val,
-                    "new_value": new_val,
-                })
+                changes.append(
+                    {
+                        "field": field,
+                        "old_value": old_val,
+                        "new_value": new_val,
+                    }
+                )
 
         # Handle new items (added fields)
         if "dictionary_item_added" in diff:
             for path in diff["dictionary_item_added"]:
                 field = path.replace("root['", "").replace("']", "")
-                changes.append({
-                    "field": field,
-                    "old_value": None,
-                    "new_value": to_data.get(field),
-                })
+                changes.append(
+                    {
+                        "field": field,
+                        "old_value": None,
+                        "new_value": to_data.get(field),
+                    }
+                )
 
         # Handle removed items (removed fields)
         if "dictionary_item_removed" in diff:
             for path in diff["dictionary_item_removed"]:
                 field = path.replace("root['", "").replace("']", "")
-                changes.append({
-                    "field": field,
-                    "old_value": from_data.get(field),
-                    "new_value": None,
-                })
+                changes.append(
+                    {
+                        "field": field,
+                        "old_value": from_data.get(field),
+                        "new_value": None,
+                    }
+                )
 
         # Compute summary
         summary = self._compute_summary(changes)

@@ -1,4 +1,5 @@
 """User service for managing user CRUD operations and RBAC."""
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -45,8 +46,7 @@ class UserService:
                 query = query.where(User.role == role_enum)
             except ValueError:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid role: {role_filter}"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid role: {role_filter}"
                 ) from None
 
         result = await self.db.execute(query)
@@ -71,19 +71,11 @@ class UserService:
             HTTPException: 404 if user not found or not in org
         """
         result = await self.db.execute(
-            select(User).where(
-                and_(
-                    User.id == user_id,
-                    User.org_id == org_id
-                )
-            )
+            select(User).where(and_(User.id == user_id, User.org_id == org_id))
         )
         user = result.scalar_one_or_none()
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         return user
 
     async def _count_admins(self, org_id: UUID) -> int:
@@ -97,11 +89,7 @@ class UserService:
         """
         result = await self.db.execute(
             select(func.count(User.id)).where(
-                and_(
-                    User.org_id == org_id,
-                    User.role == UserRole.ADMIN,
-                    User.is_active.is_(True)
-                )
+                and_(User.org_id == org_id, User.role == UserRole.ADMIN, User.is_active.is_(True))
             )
         )
         return result.scalar_one()
@@ -160,7 +148,7 @@ class UserService:
                 if await self._is_last_admin(user):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Cannot demote the last admin in the organization"
+                        detail="Cannot demote the last admin in the organization",
                     )
 
             try:
@@ -169,8 +157,7 @@ class UserService:
                 changes["role"] = {"old": old_role, "new": role}
             except ValueError:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid role: {role}"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid role: {role}"
                 ) from None
 
         # Update active status if provided
@@ -196,7 +183,7 @@ class UserService:
                         "user_id": str(user.id),
                         "old_role": old_role,
                         "new_role": role,
-                    }
+                    },
                 )
 
             # Log general user update
@@ -206,7 +193,7 @@ class UserService:
                 action=AuditAction.USER_UPDATE,
                 entity_type="user",
                 entity_id=user.id,
-                diff_json=changes
+                diff_json=changes,
             )
 
         return user
@@ -235,7 +222,7 @@ class UserService:
         if await self._is_last_admin(user):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete the last admin in the organization"
+                detail="Cannot delete the last admin in the organization",
             )
 
         # Audit log before deletion
@@ -248,7 +235,7 @@ class UserService:
             diff_json={
                 "email": user.email,
                 "role": user.role.value,
-            }
+            },
         )
 
         # Delete the user

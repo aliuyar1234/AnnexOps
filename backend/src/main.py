@@ -1,4 +1,5 @@
 """FastAPI application entry point."""
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -67,6 +68,7 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "ok"}
 
+
 app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
@@ -84,6 +86,7 @@ app.include_router(llm.router, prefix="/api", tags=["llm"])
 
 # Register /me endpoint at root /api level (per OpenAPI spec)
 
+
 @app.get("/api/me", response_model=UserResponse, tags=["auth"])
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information."""
@@ -93,5 +96,5 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         role=current_user.role.value,
         is_active=current_user.is_active,
         last_login_at=current_user.last_login_at,
-        created_at=current_user.created_at
+        created_at=current_user.created_at,
     )

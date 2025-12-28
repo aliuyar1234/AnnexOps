@@ -1,4 +1,5 @@
 """API routes for high-risk assessments."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -31,7 +32,9 @@ def _assessment_to_response(assessment, service: AssessmentService) -> Assessmen
         created_by=UserSummary(
             id=assessment.creator.id,
             email=assessment.creator.email,
-        ) if assessment.creator else None,
+        )
+        if assessment.creator
+        else None,
         created_at=assessment.created_at,
     )
 

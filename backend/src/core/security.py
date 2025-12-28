@@ -1,4 +1,5 @@
 """Security utilities for password hashing and JWT token management."""
+
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -16,12 +17,13 @@ _COMMON_PASSWORDS_FILE = Path(__file__).parent / "common_passwords.txt"
 _COMMON_PASSWORDS = set()
 
 if _COMMON_PASSWORDS_FILE.exists():
-    with open(_COMMON_PASSWORDS_FILE, encoding='utf-8') as f:
+    with open(_COMMON_PASSWORDS_FILE, encoding="utf-8") as f:
         _COMMON_PASSWORDS = {line.strip().lower() for line in f if line.strip()}
 
 
 class PasswordValidationError(ValueError):
     """Raised when password validation fails."""
+
     pass
 
 
@@ -45,13 +47,13 @@ def validate_password(password: str) -> None:
     if len(password) < 8:
         raise PasswordValidationError("Password must be at least 8 characters long")
 
-    if not re.search(r'[A-Z]', password):
+    if not re.search(r"[A-Z]", password):
         raise PasswordValidationError("Password must contain at least one uppercase letter")
 
-    if not re.search(r'[a-z]', password):
+    if not re.search(r"[a-z]", password):
         raise PasswordValidationError("Password must contain at least one lowercase letter")
 
-    if not re.search(r'\d', password):
+    if not re.search(r"\d", password):
         raise PasswordValidationError("Password must contain at least one digit")
 
     if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
@@ -59,7 +61,9 @@ def validate_password(password: str) -> None:
 
     # Check against common passwords list (case-insensitive)
     if password.lower() in _COMMON_PASSWORDS:
-        raise PasswordValidationError("Password is too common. Please choose a more unique password")
+        raise PasswordValidationError(
+            "Password is too common. Please choose a more unique password"
+        )
 
 
 def hash_password(password: str) -> str:
@@ -72,10 +76,10 @@ def hash_password(password: str) -> str:
         Hashed password string
     """
     # Generate salt and hash password
-    password_bytes = password.encode('utf-8')
+    password_bytes = password.encode("utf-8")
     salt = bcrypt.gensalt(rounds=settings.bcrypt_rounds)
     hashed = bcrypt.hashpw(password_bytes, salt)
-    return hashed.decode('utf-8')
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -88,8 +92,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    password_bytes = plain_password.encode('utf-8')
-    hashed_bytes = hashed_password.encode('utf-8')
+    password_bytes = plain_password.encode("utf-8")
+    hashed_bytes = hashed_password.encode("utf-8")
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
@@ -107,15 +111,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(
-            minutes=settings.jwt_access_token_expire_minutes
-        )
+        expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.jwt_secret,
-        algorithm=settings.jwt_algorithm
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return encoded_jwt
 
 
@@ -131,11 +129,7 @@ def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.jwt_secret,
-        algorithm=settings.jwt_algorithm
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return encoded_jwt
 
 
@@ -149,11 +143,7 @@ def decode_token(token: str) -> dict | None:
         Decoded token payload if valid, None otherwise
     """
     try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret,
-            algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         return payload
     except jwt_exceptions.PyJWTError:
         return None

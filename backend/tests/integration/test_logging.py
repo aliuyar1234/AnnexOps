@@ -119,7 +119,14 @@ async def test_schema_validation_errors_return_400(
     # Missing required event_time
     response = await client.post(
         "/api/v1/logs",
-        json={"event_id": "evt_1", "actor": "x", "subject": {"subject_type": "candidate", "subject_id_hash": "sha256:x"}, "model": {"model_id": "m", "model_version": "1"}, "input": {"input_hash": "sha256:i"}, "output": {"decision": "reject", "output_hash": "sha256:o"}},
+        json={
+            "event_id": "evt_1",
+            "actor": "x",
+            "subject": {"subject_type": "candidate", "subject_id_hash": "sha256:x"},
+            "model": {"model_id": "m", "model_version": "1"},
+            "input": {"input_hash": "sha256:i"},
+            "output": {"decision": "reject", "output_hash": "sha256:o"},
+        },
         headers={"X-API-Key": api_key},
     )
     assert response.status_code == 400
@@ -187,7 +194,9 @@ async def test_json_export(
     )
     api_key = enable_response.json()["api_key"]
 
-    ingest = await client.post("/api/v1/logs", json=sample_decision_event, headers={"X-API-Key": api_key})
+    ingest = await client.post(
+        "/api/v1/logs", json=sample_decision_event, headers={"X-API-Key": api_key}
+    )
     assert ingest.status_code == 201
 
     viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
@@ -219,7 +228,9 @@ async def test_csv_export(
     )
     api_key = enable_response.json()["api_key"]
 
-    ingest = await client.post("/api/v1/logs", json=sample_decision_event, headers={"X-API-Key": api_key})
+    ingest = await client.post(
+        "/api/v1/logs", json=sample_decision_event, headers={"X-API-Key": api_key}
+    )
     assert ingest.status_code == 201
 
     viewer_token = create_access_token({"sub": str(test_viewer_user.id)})
@@ -252,4 +263,3 @@ async def test_expired_api_key_rejected(
         headers={"X-API-Key": test_log_api_key["api_key"]},
     )
     assert response.status_code == 401
-

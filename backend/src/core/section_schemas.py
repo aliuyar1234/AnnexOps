@@ -1,6 +1,5 @@
 """Section schemas and weights for Annex IV documentation."""
 
-
 # Section schemas define required fields for each Annex IV section
 SECTION_SCHEMAS: dict[str, list[str]] = {
     "ANNEX4.GENERAL": [
@@ -123,8 +122,7 @@ def get_section_completeness(section_key: str, content: dict) -> float:
         return 100.0
 
     filled_fields = sum(
-        1 for field in required_fields
-        if field in content and content[field] not in (None, "", [])
+        1 for field in required_fields if field in content and content[field] not in (None, "", [])
     )
 
     return round((filled_fields / len(required_fields)) * 100, 2)
@@ -144,9 +142,7 @@ def get_overall_completeness(sections: dict[str, dict]) -> float:
 
     for section_key, weight in SECTION_WEIGHTS.items():
         if section_key in sections:
-            section_completeness = get_section_completeness(
-                section_key, sections[section_key]
-            )
+            section_completeness = get_section_completeness(section_key, sections[section_key])
             total_score += section_completeness * weight
         # If section doesn't exist, it contributes 0 to the score
 

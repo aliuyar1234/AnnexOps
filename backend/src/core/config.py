@@ -1,4 +1,5 @@
 """Configuration settings using Pydantic Settings."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -70,6 +71,7 @@ class Settings(BaseSettings):
             raise ValueError("MINIO_ACCESS_KEY/MINIO_SECRET_KEY must be set in production")
 
         return self
+
 
 @lru_cache
 def get_settings() -> Settings:

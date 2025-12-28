@@ -1,4 +1,5 @@
 """Contract tests for evidence endpoints."""
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -695,7 +696,10 @@ async def test_list_evidence_with_search_returns_200(
     assert "offset" in data
     assert data["total"] == 1
     assert len(data["items"]) == 1
-    assert "risk" in data["items"][0]["title"].lower() or "risk" in data["items"][0]["description"].lower()
+    assert (
+        "risk" in data["items"][0]["title"].lower()
+        or "risk" in data["items"][0]["description"].lower()
+    )
 
 
 @pytest.mark.asyncio

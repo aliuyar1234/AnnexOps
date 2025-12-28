@@ -1,4 +1,5 @@
 """AuditEvent model."""
+
 from sqlalchemy import Column, ForeignKey, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
@@ -22,44 +23,28 @@ class AuditEvent(BaseModel):
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     action = Column(
-        SQLEnum(AuditAction, name="audit_action", create_type=False, values_callable=lambda x: [e.value for e in x]),
-        nullable=False
+        SQLEnum(
+            AuditAction,
+            name="audit_action",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
     )
-    entity_type = Column(
-        String(50),
-        nullable=False
-    )
-    entity_id = Column(
-        UUID(as_uuid=True),
-        nullable=False
-    )
-    diff_json = Column(
-        JSONB,
-        nullable=True
-    )
-    ip_address = Column(
-        INET,
-        nullable=True
-    )
+    entity_type = Column(String(50), nullable=False)
+    entity_id = Column(UUID(as_uuid=True), nullable=False)
+    diff_json = Column(JSONB, nullable=True)
+    ip_address = Column(INET, nullable=True)
 
     # Relationships
-    organization = relationship(
-        "Organization",
-        back_populates="audit_events"
-    )
-    user = relationship(
-        "User",
-        back_populates="audit_events"
-    )
+    organization = relationship("Organization", back_populates="audit_events")
+    user = relationship("User", back_populates="audit_events")
 
     __table_args__ = (
         # Index for efficient entity lookups

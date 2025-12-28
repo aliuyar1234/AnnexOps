@@ -1,4 +1,5 @@
 """Contract tests for evidence mapping endpoints."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,6 +133,7 @@ async def test_create_mapping_returns_404_for_nonexistent_evidence(
 ):
     """POST /systems/{id}/versions/{vid}/evidence returns 404 for nonexistent evidence."""
     from uuid import uuid4
+
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
@@ -158,6 +160,7 @@ async def test_create_mapping_returns_404_for_nonexistent_version(
 ):
     """POST /systems/{id}/versions/{vid}/evidence returns 404 for nonexistent version."""
     from uuid import uuid4
+
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.post(
@@ -351,6 +354,7 @@ async def test_delete_mapping_returns_404_for_nonexistent_mapping(
 ):
     """DELETE /systems/{id}/versions/{vid}/evidence/{mapping_id} returns 404 for nonexistent mapping."""
     from uuid import uuid4
+
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     response = await client.delete(

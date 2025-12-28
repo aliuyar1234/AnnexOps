@@ -59,7 +59,8 @@ async def ingest_log(
 ) -> LogIngestResponse:
     """Ingest a decision event using per-version API key authentication."""
     service = LoggingService(db)
-    log = await service.ingest_event(api_key=api_key, raw_event=payload, allow_raw_pii=settings.allow_raw_pii)
+    log = await service.ingest_event(
+        api_key=api_key, raw_event=payload, allow_raw_pii=settings.allow_raw_pii
+    )
     await db.commit()
     return LogIngestResponse(id=log.id)
-

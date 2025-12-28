@@ -1,4 +1,5 @@
 """AI System service for CRUD operations."""
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -107,11 +108,7 @@ class AISystemService:
         )
 
         # Count query
-        count_query = (
-            select(func.count())
-            .select_from(AISystem)
-            .where(AISystem.org_id == org_id)
-        )
+        count_query = select(func.count()).select_from(AISystem).where(AISystem.org_id == org_id)
 
         # Apply filter
         if use_case_type:
@@ -205,20 +202,44 @@ class AISystemService:
             changes["description"] = {"old": system.description, "new": request.description}
             system.description = request.description
 
-        if request.hr_use_case_type is not None and request.hr_use_case_type != system.hr_use_case_type:
-            changes["hr_use_case_type"] = {"old": system.hr_use_case_type.value, "new": request.hr_use_case_type.value}
+        if (
+            request.hr_use_case_type is not None
+            and request.hr_use_case_type != system.hr_use_case_type
+        ):
+            changes["hr_use_case_type"] = {
+                "old": system.hr_use_case_type.value,
+                "new": request.hr_use_case_type.value,
+            }
             system.hr_use_case_type = request.hr_use_case_type
 
-        if request.intended_purpose is not None and request.intended_purpose != system.intended_purpose:
-            changes["intended_purpose"] = {"old": system.intended_purpose, "new": request.intended_purpose}
+        if (
+            request.intended_purpose is not None
+            and request.intended_purpose != system.intended_purpose
+        ):
+            changes["intended_purpose"] = {
+                "old": system.intended_purpose,
+                "new": request.intended_purpose,
+            }
             system.intended_purpose = request.intended_purpose
 
-        if request.deployment_type is not None and request.deployment_type != system.deployment_type:
-            changes["deployment_type"] = {"old": system.deployment_type.value, "new": request.deployment_type.value}
+        if (
+            request.deployment_type is not None
+            and request.deployment_type != system.deployment_type
+        ):
+            changes["deployment_type"] = {
+                "old": system.deployment_type.value,
+                "new": request.deployment_type.value,
+            }
             system.deployment_type = request.deployment_type
 
-        if request.decision_influence is not None and request.decision_influence != system.decision_influence:
-            changes["decision_influence"] = {"old": system.decision_influence.value, "new": request.decision_influence.value}
+        if (
+            request.decision_influence is not None
+            and request.decision_influence != system.decision_influence
+        ):
+            changes["decision_influence"] = {
+                "old": system.decision_influence.value,
+                "new": request.decision_influence.value,
+            }
             system.decision_influence = request.decision_influence
 
         if request.contact_name is not None and request.contact_name != system.contact_name:

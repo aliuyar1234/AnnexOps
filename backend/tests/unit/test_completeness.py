@@ -1,4 +1,5 @@
 """Unit tests for completeness calculation logic."""
+
 from uuid import uuid4
 
 

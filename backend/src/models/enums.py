@@ -1,4 +1,5 @@
 """Enumerations for user roles and audit actions."""
+
 from enum import Enum
 
 

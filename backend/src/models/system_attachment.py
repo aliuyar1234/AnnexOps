@@ -1,4 +1,5 @@
 """System attachment model for file storage."""
+
 from sqlalchemy import BigInteger, Column, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -63,9 +64,7 @@ class SystemAttachment(BaseModel):
         foreign_keys=[uploaded_by],
     )
 
-    __table_args__ = (
-        Index("idx_attachments_checksum", "checksum_sha256"),
-    )
+    __table_args__ = (Index("idx_attachments_checksum", "checksum_sha256"),)
 
     def __repr__(self) -> str:
         return f"<SystemAttachment(id={self.id}, title={self.title})>"

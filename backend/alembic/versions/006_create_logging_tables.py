@@ -5,8 +5,8 @@ Revises: 005
 Create Date: 2025-12-25
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
@@ -110,9 +110,7 @@ def upgrade() -> None:
     )
 
     op.create_index("idx_logs_version_time", "decision_logs", ["version_id", "event_time"])
-    op.create_index(
-        "idx_logs_event_id", "decision_logs", ["version_id", "event_id"], unique=True
-    )
+    op.create_index("idx_logs_event_id", "decision_logs", ["version_id", "event_id"], unique=True)
     op.create_index("idx_logs_ingested", "decision_logs", ["ingested_at"])
 
 

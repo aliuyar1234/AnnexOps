@@ -1,4 +1,5 @@
 """Pydantic schemas for System Version endpoints."""
+
 from datetime import date, datetime
 from uuid import UUID
 
@@ -110,4 +111,4 @@ class VersionDetailResponse(VersionResponse):
 class CloneVersionRequest(BaseModel):
     """Request schema for cloning a system version."""
 
-    label: str = Field(..., min_length=1, max_length=50, pattern=r'^[a-zA-Z0-9._-]+$')
+    label: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-zA-Z0-9._-]+$")

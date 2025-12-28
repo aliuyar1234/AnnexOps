@@ -2,6 +2,7 @@
 
 Tests password hashing, JWT token creation and validation.
 """
+
 from datetime import UTC, datetime, timedelta
 
 from src.core.security import (

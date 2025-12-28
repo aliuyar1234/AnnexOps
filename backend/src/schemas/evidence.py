@@ -1,4 +1,5 @@
 """Pydantic schemas for evidence endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 
@@ -12,9 +13,7 @@ class UrlMetadata(BaseModel):
     """Metadata schema for URL type evidence."""
 
     url: HttpUrl = Field(..., description="URL to external resource")
-    accessed_at: datetime | None = Field(
-        None, description="Timestamp when URL was accessed"
-    )
+    accessed_at: datetime | None = Field(None, description="Timestamp when URL was accessed")
     # Note: 'title' field removed as it's redundant with evidence.title
 
 
@@ -57,9 +56,7 @@ class UploadMetadata(BaseModel):
     """Metadata schema for Upload type evidence."""
 
     storage_uri: str = Field(..., description="Storage location URI")
-    checksum_sha256: str = Field(
-        ..., min_length=64, max_length=64, description="SHA-256 checksum"
-    )
+    checksum_sha256: str = Field(..., min_length=64, max_length=64, description="SHA-256 checksum")
     file_size: int = Field(..., gt=0, description="File size in bytes")
     mime_type: str = Field(..., min_length=1, description="MIME type of file")
     original_filename: str = Field(
@@ -139,8 +136,13 @@ class EvidenceResponse(BaseModel):
     created_by: UUID
     created_at: datetime
     updated_at: datetime
-    usage_count: int | None = Field(None, description="Number of mappings referencing this evidence (only populated when listing)")
-    duplicate_of: UUID | None = Field(None, description="ID of evidence with same checksum (duplicate warning)")
+    usage_count: int | None = Field(
+        None,
+        description="Number of mappings referencing this evidence (only populated when listing)",
+    )
+    duplicate_of: UUID | None = Field(
+        None, description="ID of evidence with same checksum (duplicate warning)"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -164,7 +166,9 @@ class EvidenceListResponse(BaseModel):
     """Response schema for evidence list with pagination metadata."""
 
     items: list[EvidenceResponse]
-    total: int = Field(..., description="Total count of items matching filters (without pagination)")
+    total: int = Field(
+        ..., description="Total count of items matching filters (without pagination)"
+    )
     limit: int = Field(..., description="Maximum number of items per page")
     offset: int = Field(..., description="Number of items skipped")
 
@@ -188,8 +192,7 @@ class EvidenceDetailResponse(EvidenceResponse):
 
     usage_count: int = Field(..., description="Number of mappings referencing this evidence")
     mapped_versions: list[VersionSummary] = Field(
-        default_factory=list,
-        description="System versions this evidence is mapped to"
+        default_factory=list, description="System versions this evidence is mapped to"
     )
 
     model_config = ConfigDict(from_attributes=True)

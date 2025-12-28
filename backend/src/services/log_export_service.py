@@ -43,7 +43,9 @@ class LogExportService:
         end_time: datetime | None = None,
     ) -> str:
         """Export logs as a JSON array of validated event objects."""
-        logs = await self._fetch_logs(version_id=version_id, start_time=start_time, end_time=end_time)
+        logs = await self._fetch_logs(
+            version_id=version_id, start_time=start_time, end_time=end_time
+        )
         payload = [log.event_json for log in logs]
         return json.dumps(payload, ensure_ascii=False)
 
@@ -54,7 +56,9 @@ class LogExportService:
         end_time: datetime | None = None,
     ) -> str:
         """Export logs as CSV (flattened key fields + full JSON)."""
-        logs = await self._fetch_logs(version_id=version_id, start_time=start_time, end_time=end_time)
+        logs = await self._fetch_logs(
+            version_id=version_id, start_time=start_time, end_time=end_time
+        )
         output = io.StringIO()
         writer = csv.DictWriter(
             output,
@@ -104,4 +108,3 @@ class LogExportService:
             )
 
         return output.getvalue()
-

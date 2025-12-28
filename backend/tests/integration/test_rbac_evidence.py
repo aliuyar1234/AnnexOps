@@ -1,4 +1,5 @@
 """Integration tests for Role-Based Access Control (RBAC) on evidence endpoints."""
+
 from unittest.mock import Mock, patch
 
 import pytest

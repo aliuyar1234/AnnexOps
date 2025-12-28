@@ -1,4 +1,5 @@
 """Schemas for export endpoints."""
+
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -10,12 +11,10 @@ class CreateExportRequest(BaseModel):
     """Request schema for creating an export."""
 
     include_diff: bool = Field(
-        default=False,
-        description="Whether to include diff compared to another version"
+        default=False, description="Whether to include diff compared to another version"
     )
     compare_version_id: UUID | None = Field(
-        default=None,
-        description="Version ID to compare against (required if include_diff=true)"
+        default=None, description="Version ID to compare against (required if include_diff=true)"
     )
 
 

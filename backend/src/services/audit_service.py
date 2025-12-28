@@ -1,4 +1,5 @@
 """Audit service for logging administrative actions."""
+
 from typing import Any
 from uuid import UUID
 

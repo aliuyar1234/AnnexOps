@@ -88,7 +88,9 @@ async def list_logs(
 ) -> LogListResponse:
     """List stored decision logs for a version (viewer+)."""
     version_service = VersionService(db)
-    await version_service.get_by_id(system_id=system_id, version_id=version_id, org_id=current_user.org_id)
+    await version_service.get_by_id(
+        system_id=system_id, version_id=version_id, org_id=current_user.org_id
+    )
 
     service = LoggingService(db)
     logs, total = await service.list_events(
@@ -132,18 +134,24 @@ async def export_logs(
 ):
     """Export decision logs (viewer+)."""
     version_service = VersionService(db)
-    await version_service.get_by_id(system_id=system_id, version_id=version_id, org_id=current_user.org_id)
+    await version_service.get_by_id(
+        system_id=system_id, version_id=version_id, org_id=current_user.org_id
+    )
 
     export_service = LogExportService(db)
     if format == "csv":
-        content = await export_service.export_csv(version_id=version_id, start_time=start_time, end_time=end_time)
+        content = await export_service.export_csv(
+            version_id=version_id, start_time=start_time, end_time=end_time
+        )
         return Response(
             content=content,
             media_type="text/csv",
             headers={"Content-Disposition": 'attachment; filename="decision_logs.csv"'},
         )
 
-    content = await export_service.export_json(version_id=version_id, start_time=start_time, end_time=end_time)
+    content = await export_service.export_json(
+        version_id=version_id, start_time=start_time, end_time=end_time
+    )
     return Response(
         content=content,
         media_type="application/json",

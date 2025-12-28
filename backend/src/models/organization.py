@@ -1,4 +1,5 @@
 """Organization model."""
+
 from sqlalchemy import CheckConstraint, Column, String
 from sqlalchemy.orm import relationship
 
@@ -14,41 +15,21 @@ class Organization(BaseModel):
 
     __tablename__ = "organizations"
 
-    name = Column(
-        String(255),
-        nullable=False,
-        unique=True,
-        index=True
-    )
+    name = Column(String(255), nullable=False, unique=True, index=True)
 
     # Relationships
-    users = relationship(
-        "User",
-        back_populates="organization",
-        cascade="all, delete-orphan"
-    )
+    users = relationship("User", back_populates="organization", cascade="all, delete-orphan")
     invitations = relationship(
-        "Invitation",
-        back_populates="organization",
-        cascade="all, delete-orphan"
+        "Invitation", back_populates="organization", cascade="all, delete-orphan"
     )
     audit_events = relationship(
-        "AuditEvent",
-        back_populates="organization",
-        cascade="all, delete-orphan"
+        "AuditEvent", back_populates="organization", cascade="all, delete-orphan"
     )
     evidence_items = relationship(
-        "EvidenceItem",
-        back_populates="organization",
-        cascade="all, delete-orphan"
+        "EvidenceItem", back_populates="organization", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        CheckConstraint(
-            "LENGTH(name) > 0",
-            name="organization_name_not_empty"
-        ),
-    )
+    __table_args__ = (CheckConstraint("LENGTH(name) > 0", name="organization_name_not_empty"),)
 
     def __repr__(self) -> str:
         return f"<Organization(id={self.id}, name={self.name})>"

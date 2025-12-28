@@ -85,8 +85,8 @@ WIZARD_QUESTIONS = [
 
 # Scoring thresholds
 SCORE_THRESHOLDS = {
-    "likely_not": (0, 3),      # 0-3 indicators: likely not high-risk
-    "unclear": (4, 6),          # 4-6 indicators: unclear, needs analysis
+    "likely_not": (0, 3),  # 0-3 indicators: likely not high-risk
+    "unclear": (4, 6),  # 4-6 indicators: unclear, needs analysis
     "likely_high_risk": (7, 13),  # 7+ indicators: likely high-risk
 }
 

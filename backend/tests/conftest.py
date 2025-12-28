@@ -1,4 +1,5 @@
 """Pytest fixtures for testing."""
+
 import asyncio
 import os
 from collections.abc import AsyncGenerator, Generator
@@ -100,17 +101,47 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
     # Create enum types (must exist before tables reference them)
     async with test_engine.begin() as conn:
         await conn.execute(sa.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        await conn.execute(sa.text("CREATE TYPE user_role AS ENUM ('admin', 'editor', 'reviewer', 'viewer')"))
-        await conn.execute(sa.text("CREATE TYPE audit_action AS ENUM ('organization.create', 'organization.update', 'user.create', 'user.update', 'user.delete', 'user.role_change', 'user.login', 'user.logout', 'user.lockout', 'invitation.create', 'invitation.accept', 'invitation.expire', 'invitation.revoke', 'ai_system.create', 'ai_system.update', 'ai_system.delete', 'assessment.create', 'attachment.upload', 'attachment.delete', 'version.create', 'version.update', 'version.delete', 'version.status_change', 'evidence.create', 'evidence.update', 'evidence.delete', 'mapping.create', 'mapping.delete', 'section.update', 'export.create')"))
-        await conn.execute(sa.text("CREATE TYPE hr_use_case_type AS ENUM ('recruitment_screening', 'application_filtering', 'candidate_matching', 'performance_evaluation', 'employee_monitoring', 'task_allocation', 'promotion_termination', 'other_hr')"))
-        await conn.execute(sa.text("CREATE TYPE deployment_type AS ENUM ('saas', 'onprem', 'hybrid')"))
-        await conn.execute(sa.text("CREATE TYPE decision_influence AS ENUM ('assistive', 'semi_automated', 'automated')"))
-        await conn.execute(sa.text("CREATE TYPE assessment_result AS ENUM ('likely_high_risk', 'unclear', 'likely_not')"))
-        await conn.execute(sa.text("CREATE TYPE version_status AS ENUM ('draft', 'review', 'approved')"))
-        await conn.execute(sa.text("CREATE TYPE evidence_type AS ENUM ('upload', 'url', 'git', 'ticket', 'note')"))
-        await conn.execute(sa.text("CREATE TYPE classification AS ENUM ('public', 'internal', 'confidential')"))
-        await conn.execute(sa.text("CREATE TYPE mapping_target_type AS ENUM ('section', 'field', 'requirement')"))
-        await conn.execute(sa.text("CREATE TYPE mapping_strength AS ENUM ('weak', 'medium', 'strong')"))
+        await conn.execute(
+            sa.text("CREATE TYPE user_role AS ENUM ('admin', 'editor', 'reviewer', 'viewer')")
+        )
+        await conn.execute(
+            sa.text(
+                "CREATE TYPE audit_action AS ENUM ('organization.create', 'organization.update', 'user.create', 'user.update', 'user.delete', 'user.role_change', 'user.login', 'user.logout', 'user.lockout', 'invitation.create', 'invitation.accept', 'invitation.expire', 'invitation.revoke', 'ai_system.create', 'ai_system.update', 'ai_system.delete', 'assessment.create', 'attachment.upload', 'attachment.delete', 'version.create', 'version.update', 'version.delete', 'version.status_change', 'evidence.create', 'evidence.update', 'evidence.delete', 'mapping.create', 'mapping.delete', 'section.update', 'export.create')"
+            )
+        )
+        await conn.execute(
+            sa.text(
+                "CREATE TYPE hr_use_case_type AS ENUM ('recruitment_screening', 'application_filtering', 'candidate_matching', 'performance_evaluation', 'employee_monitoring', 'task_allocation', 'promotion_termination', 'other_hr')"
+            )
+        )
+        await conn.execute(
+            sa.text("CREATE TYPE deployment_type AS ENUM ('saas', 'onprem', 'hybrid')")
+        )
+        await conn.execute(
+            sa.text(
+                "CREATE TYPE decision_influence AS ENUM ('assistive', 'semi_automated', 'automated')"
+            )
+        )
+        await conn.execute(
+            sa.text(
+                "CREATE TYPE assessment_result AS ENUM ('likely_high_risk', 'unclear', 'likely_not')"
+            )
+        )
+        await conn.execute(
+            sa.text("CREATE TYPE version_status AS ENUM ('draft', 'review', 'approved')")
+        )
+        await conn.execute(
+            sa.text("CREATE TYPE evidence_type AS ENUM ('upload', 'url', 'git', 'ticket', 'note')")
+        )
+        await conn.execute(
+            sa.text("CREATE TYPE classification AS ENUM ('public', 'internal', 'confidential')")
+        )
+        await conn.execute(
+            sa.text("CREATE TYPE mapping_target_type AS ENUM ('section', 'field', 'requirement')")
+        )
+        await conn.execute(
+            sa.text("CREATE TYPE mapping_strength AS ENUM ('weak', 'medium', 'strong')")
+        )
 
     # Create tables
     async with test_engine.begin() as conn:
@@ -419,7 +450,9 @@ async def create_version(
 
 
 @pytest_asyncio.fixture
-async def test_log_api_key(db: AsyncSession, test_version: SystemVersion, test_editor_user: User) -> dict:
+async def test_log_api_key(
+    db: AsyncSession, test_version: SystemVersion, test_editor_user: User
+) -> dict:
     """Create a test log API key (returns both model and plaintext key)."""
     import hashlib
     import uuid
@@ -891,7 +924,9 @@ def mock_llm_generate_success():
 
     from src.services.llm_service import LlmCompletion
 
-    with patch("src.services.llm_service.LlmService.generate", new_callable=AsyncMock) as mock_generate:
+    with patch(
+        "src.services.llm_service.LlmService.generate", new_callable=AsyncMock
+    ) as mock_generate:
         mock_generate.return_value = LlmCompletion(
             text="## Draft\n\nExample text [Evidence: 00000000-0000-0000-0000-000000000000]",
             model="claude-3-sonnet-20240229",

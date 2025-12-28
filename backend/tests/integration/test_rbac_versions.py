@@ -1,4 +1,5 @@
 """Integration tests for RBAC enforcement on system versions."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

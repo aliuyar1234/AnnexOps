@@ -3,6 +3,7 @@
 These tests validate the API contract defined in specs/001-org-auth/contracts/openapi.yaml
 for organization endpoints.
 """
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +31,7 @@ async def test_create_organization_bootstrap_success(
     payload = {
         "name": "Acme Corporation",
         "admin_email": "admin@acme.com",
-        "admin_password": "SecurePass123!"
+        "admin_password": "SecurePass123!",
     }
 
     # Act
@@ -45,9 +46,8 @@ async def test_create_organization_bootstrap_success(
 
     # Verify organization exists in database
     from sqlalchemy import select
-    result = await db.execute(
-        select(Organization).where(Organization.name == "Acme Corporation")
-    )
+
+    result = await db.execute(select(Organization).where(Organization.name == "Acme Corporation"))
     org = result.scalar_one_or_none()
     assert org is not None
 
@@ -77,7 +77,7 @@ async def test_create_organization_already_exists_fails(
     payload = {
         "name": "Another Corporation",
         "admin_email": "admin@another.com",
-        "admin_password": "SecurePass123!"
+        "admin_password": "SecurePass123!",
     }
 
     # Act
@@ -107,36 +107,25 @@ async def test_create_organization_validation_fails(
     payload = {
         "name": "Test Corp",
         "admin_email": "not-an-email",
-        "admin_password": "SecurePass123!"
+        "admin_password": "SecurePass123!",
     }
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 422
 
     # Test short password
-    payload = {
-        "name": "Test Corp",
-        "admin_email": "admin@test.com",
-        "admin_password": "short"
-    }
+    payload = {"name": "Test Corp", "admin_email": "admin@test.com", "admin_password": "short"}
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 422
 
     # Test empty name
-    payload = {
-        "name": "",
-        "admin_email": "admin@test.com",
-        "admin_password": "SecurePass123!"
-    }
+    payload = {"name": "", "admin_email": "admin@test.com", "admin_password": "SecurePass123!"}
     response = await client.post("/api/organizations", json=payload, headers=bootstrap_headers)
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_get_organization_success(
-    client: AsyncClient,
-    db: AsyncSession,
-    test_org: Organization,
-    test_admin_user: User
+    client: AsyncClient, db: AsyncSession, test_org: Organization, test_admin_user: User
 ):
     """Test GET /organizations/{org_id} returns organization details.
 
@@ -175,10 +164,7 @@ async def test_get_organization_unauthorized(client: AsyncClient, test_org: Orga
 
 
 @pytest.mark.asyncio
-async def test_get_organization_not_found(
-    client: AsyncClient,
-    test_admin_user: User
-):
+async def test_get_organization_not_found(client: AsyncClient, test_admin_user: User):
     """Test GET /organizations/{org_id} returns 404 for non-existent org.
 
     Contract: GET /organizations/{org_id}
@@ -198,10 +184,7 @@ async def test_get_organization_not_found(
 
 @pytest.mark.asyncio
 async def test_update_organization_success(
-    client: AsyncClient,
-    db: AsyncSession,
-    test_org: Organization,
-    test_admin_user: User
+    client: AsyncClient, db: AsyncSession, test_org: Organization, test_admin_user: User
 ):
     """Test PATCH /organizations/{org_id} updates organization name.
 
@@ -217,9 +200,7 @@ async def test_update_organization_success(
 
     # Act
     response = await client.patch(
-        f"/api/organizations/{test_org.id}",
-        headers=headers,
-        json=payload
+        f"/api/organizations/{test_org.id}", headers=headers, json=payload
     )
 
     # Assert
@@ -235,9 +216,7 @@ async def test_update_organization_success(
 
 @pytest.mark.asyncio
 async def test_update_organization_non_admin_fails(
-    client: AsyncClient,
-    test_org: Organization,
-    test_viewer_user: User
+    client: AsyncClient, test_org: Organization, test_viewer_user: User
 ):
     """Test PATCH /organizations/{org_id} fails for non-admin users.
 
@@ -251,9 +230,7 @@ async def test_update_organization_non_admin_fails(
 
     # Act
     response = await client.patch(
-        f"/api/organizations/{test_org.id}",
-        headers=headers,
-        json=payload
+        f"/api/organizations/{test_org.id}", headers=headers, json=payload
     )
 
     # Assert
@@ -261,10 +238,7 @@ async def test_update_organization_non_admin_fails(
 
 
 @pytest.mark.asyncio
-async def test_update_organization_unauthorized(
-    client: AsyncClient,
-    test_org: Organization
-):
+async def test_update_organization_unauthorized(client: AsyncClient, test_org: Organization):
     """Test PATCH /organizations/{org_id} fails without authentication.
 
     Contract: PATCH /organizations/{org_id}
@@ -272,8 +246,7 @@ async def test_update_organization_unauthorized(
     """
     # Act
     response = await client.patch(
-        f"/api/organizations/{test_org.id}",
-        json={"name": "Unauthorized"}
+        f"/api/organizations/{test_org.id}", json={"name": "Unauthorized"}
     )
 
     # Assert

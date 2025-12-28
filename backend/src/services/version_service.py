@@ -1,4 +1,5 @@
 """Version service for CRUD operations on system versions."""
+
 import re
 from datetime import date
 from uuid import UUID
@@ -29,7 +30,7 @@ class VersionService:
 
     # Regex pattern for label validation
     # Alphanumeric + dots + dashes + underscores, 1-50 characters
-    LABEL_PATTERN = re.compile(r'^[a-zA-Z0-9._-]{1,50}$')
+    LABEL_PATTERN = re.compile(r"^[a-zA-Z0-9._-]{1,50}$")
 
     def __init__(self, db: AsyncSession):
         """Initialize version service.
@@ -99,11 +100,7 @@ class VersionService:
         Raises:
             HTTPException: 404 if system not found
         """
-        query = (
-            select(AISystem)
-            .where(AISystem.id == system_id)
-            .where(AISystem.org_id == org_id)
-        )
+        query = select(AISystem).where(AISystem.id == system_id).where(AISystem.org_id == org_id)
         result = await self.db.execute(query)
         system = result.scalar_one_or_none()
 
@@ -580,7 +577,9 @@ class VersionService:
         if version.status != VersionStatus.APPROVED:
             return True
 
-        export_count_query = select(func.count()).select_from(Export).where(Export.version_id == version.id)
+        export_count_query = (
+            select(func.count()).select_from(Export).where(Export.version_id == version.id)
+        )
         export_count = await self.db.scalar(export_count_query)
         return int(export_count or 0) == 0
 

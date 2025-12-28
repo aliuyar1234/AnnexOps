@@ -3,6 +3,7 @@
 These tests validate that the API responses match the OpenAPI contract
 defined in specs/001-org-auth/contracts/openapi.yaml
 """
+
 import pytest
 from httpx import AsyncClient
 
@@ -15,18 +16,11 @@ class TestLoginContract:
     """Contract tests for POST /auth/login endpoint."""
 
     async def test_login_success_response_schema(
-        self,
-        client: AsyncClient,
-        test_org: Organization,
-        test_admin_user: User
+        self, client: AsyncClient, test_org: Organization, test_admin_user: User
     ):
         """Test successful login returns correct response schema."""
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 200
@@ -46,17 +40,11 @@ class TestLoginContract:
         assert len(cookie) > 0
 
     async def test_login_invalid_credentials_response(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
+        self, client: AsyncClient, test_admin_user: User
     ):
         """Test login with invalid credentials returns 401."""
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "WrongPassword123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPassword123!"}
         )
 
         assert response.status_code == 401
@@ -66,46 +54,27 @@ class TestLoginContract:
         assert "detail" in data
         assert isinstance(data["detail"], str)
 
-    async def test_login_nonexistent_user_response(
-        self,
-        client: AsyncClient
-    ):
+    async def test_login_nonexistent_user_response(self, client: AsyncClient):
         """Test login with non-existent user returns 401."""
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "nonexistent@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "nonexistent@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 401
         data = response.json()
         assert "detail" in data
 
-    async def test_login_locked_account_response(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
-    ):
+    async def test_login_locked_account_response(self, client: AsyncClient, test_admin_user: User):
         """Test login with locked account returns 423."""
         # Lock the account by making 5 failed attempts
         for _ in range(5):
             await client.post(
-                "/api/auth/login",
-                json={
-                    "email": "admin@test.com",
-                    "password": "WrongPassword"
-                }
+                "/api/auth/login", json={"email": "admin@test.com", "password": "WrongPassword"}
             )
 
         # Attempt login with correct password (should be locked)
         response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
 
         assert response.status_code == 423
@@ -113,29 +82,19 @@ class TestLoginContract:
         assert "detail" in data
         assert "locked" in data["detail"].lower()
 
-    async def test_login_request_validation(
-        self,
-        client: AsyncClient
-    ):
+    async def test_login_request_validation(self, client: AsyncClient):
         """Test login request validation."""
         # Missing password
-        response = await client.post(
-            "/api/auth/login",
-            json={"email": "test@test.com"}
-        )
+        response = await client.post("/api/auth/login", json={"email": "test@test.com"})
         assert response.status_code == 422
 
         # Missing email
-        response = await client.post(
-            "/api/auth/login",
-            json={"password": "TestPass123!"}
-        )
+        response = await client.post("/api/auth/login", json={"password": "TestPass123!"})
         assert response.status_code == 422
 
         # Invalid email format
         response = await client.post(
-            "/api/auth/login",
-            json={"email": "not-an-email", "password": "TestPass123!"}
+            "/api/auth/login", json={"email": "not-an-email", "password": "TestPass123!"}
         )
         assert response.status_code == 422
 
@@ -145,18 +104,12 @@ class TestRefreshContract:
     """Contract tests for POST /auth/refresh endpoint."""
 
     async def test_refresh_success_response_schema(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
+        self, client: AsyncClient, test_admin_user: User
     ):
         """Test successful token refresh returns correct response schema."""
         # First login to get refresh token
         login_response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         assert login_response.status_code == 200
 
@@ -178,10 +131,7 @@ class TestRefreshContract:
         assert isinstance(data["access_token"], str)
         assert len(data["access_token"]) > 0
 
-    async def test_refresh_invalid_token_response(
-        self,
-        client: AsyncClient
-    ):
+    async def test_refresh_invalid_token_response(self, client: AsyncClient):
         """Test refresh with invalid token returns 401."""
         client.cookies.set("refresh_token", "invalid_token")
         response = await client.post("/api/auth/refresh")
@@ -190,10 +140,7 @@ class TestRefreshContract:
         data = response.json()
         assert "detail" in data
 
-    async def test_refresh_missing_token_response(
-        self,
-        client: AsyncClient
-    ):
+    async def test_refresh_missing_token_response(self, client: AsyncClient):
         """Test refresh without token returns 401."""
         response = await client.post("/api/auth/refresh")
 
@@ -206,26 +153,17 @@ class TestRefreshContract:
 class TestLogoutContract:
     """Contract tests for POST /auth/logout endpoint."""
 
-    async def test_logout_success_response(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
-    ):
+    async def test_logout_success_response(self, client: AsyncClient, test_admin_user: User):
         """Test successful logout response."""
         # First login
         login_response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         access_token = login_response.json()["access_token"]
 
         # Logout
         response = await client.post(
-            "/api/auth/logout",
-            headers={"Authorization": f"Bearer {access_token}"}
+            "/api/auth/logout", headers={"Authorization": f"Bearer {access_token}"}
         )
 
         assert response.status_code == 200
@@ -236,10 +174,7 @@ class TestLogoutContract:
         if "refresh_token" in response.cookies:
             assert response.cookies["refresh_token"] == ""
 
-    async def test_logout_unauthorized_response(
-        self,
-        client: AsyncClient
-    ):
+    async def test_logout_unauthorized_response(self, client: AsyncClient):
         """Test logout without authentication returns 401."""
         response = await client.post("/api/auth/logout")
         assert response.status_code == 401 or response.status_code == 403
@@ -250,26 +185,17 @@ class TestCurrentUserContract:
     """Contract tests for GET /me endpoint."""
 
     async def test_get_current_user_success_response_schema(
-        self,
-        client: AsyncClient,
-        test_admin_user: User
+        self, client: AsyncClient, test_admin_user: User
     ):
         """Test GET /me returns correct UserResponse schema."""
         # First login
         login_response = await client.post(
-            "/api/auth/login",
-            json={
-                "email": "admin@test.com",
-                "password": "TestPass123!"
-            }
+            "/api/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
         )
         access_token = login_response.json()["access_token"]
 
         # Get current user
-        response = await client.get(
-            "/api/me",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
+        response = await client.get("/api/me", headers={"Authorization": f"Bearer {access_token}"})
 
         assert response.status_code == 200
         data = response.json()
@@ -286,21 +212,12 @@ class TestCurrentUserContract:
         assert data["role"] == "admin"
         assert data["is_active"] is True
 
-    async def test_get_current_user_unauthorized_response(
-        self,
-        client: AsyncClient
-    ):
+    async def test_get_current_user_unauthorized_response(self, client: AsyncClient):
         """Test GET /me without authentication returns 401."""
         response = await client.get("/api/me")
         assert response.status_code == 401 or response.status_code == 403
 
-    async def test_get_current_user_invalid_token_response(
-        self,
-        client: AsyncClient
-    ):
+    async def test_get_current_user_invalid_token_response(self, client: AsyncClient):
         """Test GET /me with invalid token returns 401."""
-        response = await client.get(
-            "/api/me",
-            headers={"Authorization": "Bearer invalid_token"}
-        )
+        response = await client.get("/api/me", headers={"Authorization": "Bearer invalid_token"})
         assert response.status_code == 401

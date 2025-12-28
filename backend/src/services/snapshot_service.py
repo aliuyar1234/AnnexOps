@@ -1,4 +1,5 @@
 """Snapshot service for deterministic hash computation."""
+
 import hashlib
 import json
 from datetime import UTC, datetime

@@ -6,21 +6,27 @@ Creates:
 
 Can be run multiple times safely (skips if exists).
 """
+
+import asyncio
 import os
 import sys
 from pathlib import Path
-import asyncio
 
 # Add backend/src to path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-from sqlalchemy import select
-from src.core.database import get_db
-from src.models.organization import Organization
-from src.models.user import User
-from src.models.enums import UserRole
-from src.core.security import hash_password, validate_password, PasswordValidationError
+from sqlalchemy import select  # noqa: E402
+
+from src.core.database import get_db  # noqa: E402
+from src.core.security import (  # noqa: E402
+    PasswordValidationError,
+    hash_password,
+    validate_password,
+)
+from src.models.enums import UserRole  # noqa: E402
+from src.models.organization import Organization  # noqa: E402
+from src.models.user import User  # noqa: E402
 
 
 async def seed_data():
@@ -38,9 +44,7 @@ async def seed_data():
     # Get database session
     async for db in get_db():
         # Check if organization already exists
-        result = await db.execute(
-            select(Organization).where(Organization.name == org_name)
-        )
+        result = await db.execute(select(Organization).where(Organization.name == org_name))
         existing_org = result.scalar_one_or_none()
 
         if existing_org:
@@ -48,18 +52,13 @@ async def seed_data():
             org = existing_org
         else:
             # Create default organization
-            org = Organization(
-                name=org_name,
-                is_active=True
-            )
+            org = Organization(name=org_name, is_active=True)
             db.add(org)
             await db.flush()  # Get org.id for user creation
             print(f"✓ Created organization '{org_name}' (ID: {org.id})")
 
         # Check if admin user already exists
-        result = await db.execute(
-            select(User).where(User.email == admin_email)
-        )
+        result = await db.execute(select(User).where(User.email == admin_email))
         existing_user = result.scalar_one_or_none()
 
         if existing_user:
@@ -78,7 +77,7 @@ async def seed_data():
                 email=admin_email,
                 password_hash=hash_password(admin_password),
                 role=UserRole.ADMIN,
-                is_active=True
+                is_active=True,
             )
             db.add(user)
             print(f"✓ Created admin user '{admin_email}'")

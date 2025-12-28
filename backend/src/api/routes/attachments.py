@@ -1,4 +1,5 @@
 """API routes for system attachments."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
@@ -27,7 +28,9 @@ def _attachment_to_response(attachment) -> AttachmentResponse:
         uploaded_by=UserSummary(
             id=attachment.uploader.id,
             email=attachment.uploader.email,
-        ) if attachment.uploader else None,
+        )
+        if attachment.uploader
+        else None,
         created_at=attachment.created_at,
     )
 

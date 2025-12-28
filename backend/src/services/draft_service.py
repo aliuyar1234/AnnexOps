@@ -90,13 +90,11 @@ def _evidence_to_prompt_text(evidence: EvidenceItem) -> str:
         ).strip()
     elif evidence.type.value == "ticket":
         content = (
-            f"Ticket: {metadata.get('ticket_id', '')}\n"
-            f"URL: {metadata.get('ticket_url', '')}"
+            f"Ticket: {metadata.get('ticket_id', '')}\nURL: {metadata.get('ticket_url', '')}"
         ).strip()
     elif evidence.type.value == "upload":
         content = (
-            f"File: {metadata.get('original_filename', '')}\n"
-            f"MIME: {metadata.get('mime_type', '')}"
+            f"File: {metadata.get('original_filename', '')}\nMIME: {metadata.get('mime_type', '')}"
         ).strip()
 
     return (

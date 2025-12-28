@@ -1,4 +1,5 @@
 """Evidence Mapping model."""
+
 from sqlalchemy import Column, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
@@ -26,49 +27,42 @@ class EvidenceMapping(BaseModel):
         UUID(as_uuid=True),
         ForeignKey("evidence_items.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     version_id = Column(
         UUID(as_uuid=True),
         ForeignKey("system_versions.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     target_type = Column(
-        SQLEnum(MappingTargetType, name="mapping_target_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
-        nullable=False
+        SQLEnum(
+            MappingTargetType,
+            name="mapping_target_type",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
     )
-    target_key = Column(
-        String(100),
-        nullable=False
-    )
+    target_key = Column(String(100), nullable=False)
     strength = Column(
-        SQLEnum(MappingStrength, name="mapping_strength", create_type=False, values_callable=lambda x: [e.value for e in x]),
-        nullable=True
+        SQLEnum(
+            MappingStrength,
+            name="mapping_strength",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=True,
     )
-    notes = Column(
-        Text,
-        nullable=True
-    )
+    notes = Column(Text, nullable=True)
     created_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
     # Relationships
-    evidence_item = relationship(
-        "EvidenceItem",
-        back_populates="mappings"
-    )
-    system_version = relationship(
-        "SystemVersion",
-        back_populates="evidence_mappings"
-    )
-    creator = relationship(
-        "User",
-        foreign_keys=[created_by]
-    )
+    evidence_item = relationship("EvidenceItem", back_populates="mappings")
+    system_version = relationship("SystemVersion", back_populates="evidence_mappings")
+    creator = relationship("User", foreign_keys=[created_by])
 
     __table_args__ = (
         # Unique constraint: one evidence item can only be mapped once to a specific target
@@ -77,7 +71,7 @@ class EvidenceMapping(BaseModel):
             "version_id",
             "target_type",
             "target_key",
-            name="uq_evidence_version_target"
+            name="uq_evidence_version_target",
         ),
         # Composite index for target lookups
         {"schema": None},

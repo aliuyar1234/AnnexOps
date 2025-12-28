@@ -1,4 +1,5 @@
 """Integration tests for attachment operations."""
+
 import io
 from unittest.mock import MagicMock, patch
 

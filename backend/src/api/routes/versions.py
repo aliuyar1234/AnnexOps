@@ -1,4 +1,5 @@
 """API routes for system versions."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -363,6 +364,7 @@ async def delete_version(
     service = VersionService(db)
     await service.delete(system_id, version_id, current_user)
     await db.commit()
+
 
 @router.get(
     "/{system_id}/versions/{version_id}/completeness",

@@ -1,4 +1,5 @@
 """AI System model for registering HR-AI systems."""
+
 from sqlalchemy import Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
@@ -32,7 +33,12 @@ class AISystem(BaseModel):
         nullable=True,
     )
     hr_use_case_type = Column(
-        SQLEnum(HRUseCaseType, name="hr_use_case_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            HRUseCaseType,
+            name="hr_use_case_type",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
     )
     intended_purpose = Column(
@@ -40,11 +46,21 @@ class AISystem(BaseModel):
         nullable=False,
     )
     deployment_type = Column(
-        SQLEnum(DeploymentType, name="deployment_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            DeploymentType,
+            name="deployment_type",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
     )
     decision_influence = Column(
-        SQLEnum(DecisionInfluence, name="decision_influence", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            DecisionInfluence,
+            name="decision_influence",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
     )
     owner_user_id = Column(

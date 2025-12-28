@@ -1,4 +1,5 @@
 """S3/MinIO storage client for file attachments."""
+
 import hashlib
 from typing import BinaryIO
 from uuid import UUID

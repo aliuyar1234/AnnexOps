@@ -1,4 +1,5 @@
 """Contract tests for export endpoints."""
+
 from decimal import Decimal
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -250,8 +251,10 @@ async def test_create_export_with_diff_returns_201(
     token = create_access_token({"sub": str(test_editor_user.id)})
 
     # Mock storage service and docx generator
-    with patch("src.services.export_service.get_storage_service") as mock_storage, \
-         patch("src.services.export_service.generate_annex_iv_document") as mock_generate_docx:
+    with (
+        patch("src.services.export_service.get_storage_service") as mock_storage,
+        patch("src.services.export_service.generate_annex_iv_document") as mock_generate_docx,
+    ):
         mock_storage_instance = Mock()
         mock_storage_instance.upload_file.return_value = f"exports/{test_org.id}/2025/12/test.zip"
         mock_storage.return_value = mock_storage_instance

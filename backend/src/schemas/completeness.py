@@ -1,4 +1,5 @@
 """Completeness dashboard schemas."""
+
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +13,7 @@ class GapItem(BaseModel):
         gap_type: Type of gap ("required_field" or "no_evidence")
         description: Human-readable description of the gap
     """
+
     section_key: str = Field(..., description="Section identifier")
     gap_type: str = Field(..., description="Type of gap: required_field or no_evidence")
     description: str = Field(..., description="Description of the gap")
@@ -28,12 +30,12 @@ class SectionCompletenessItem(BaseModel):
         evidence_count: Number of evidence items mapped to this section
         gaps: List of gap descriptions for this section
     """
+
     section_key: str = Field(..., description="Section identifier")
     title: str = Field(..., description="Human-readable section title")
     score: float = Field(..., ge=0, le=100, description="Completeness score (0-100)")
     field_completion: dict[str, bool] = Field(
-        ...,
-        description="Map of field names to filled status"
+        ..., description="Map of field names to filled status"
     )
     evidence_count: int = Field(..., ge=0, description="Number of evidence items")
     gaps: list[str] = Field(default_factory=list, description="List of gap descriptions")
@@ -48,16 +50,13 @@ class CompletenessResponse(BaseModel):
         sections: List of section completeness details
         gaps: Aggregated list of all gaps across sections
     """
+
     version_id: UUID = Field(..., description="System version identifier")
     overall_score: float = Field(..., ge=0, le=100, description="Overall completeness score")
     sections: list[SectionCompletenessItem] = Field(
-        default_factory=list,
-        description="Per-section completeness details"
+        default_factory=list, description="Per-section completeness details"
     )
-    gaps: list[GapItem] = Field(
-        default_factory=list,
-        description="Aggregated list of all gaps"
-    )
+    gaps: list[GapItem] = Field(default_factory=list, description="Aggregated list of all gaps")
 
     model_config = ConfigDict(
         json_schema_extra={

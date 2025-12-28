@@ -43,7 +43,7 @@ async def login(
     login_data: LoginRequest,
     response: Response,
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """User login endpoint.
 
@@ -72,9 +72,7 @@ async def login(
 
     # Authenticate user
     access_token, refresh_token, user = await auth_service.login(
-        email=login_data.email,
-        password=login_data.password,
-        ip_address=client_ip
+        email=login_data.email, password=login_data.password, ip_address=client_ip
     )
 
     # Set refresh token as httpOnly cookie for security
@@ -84,7 +82,7 @@ async def login(
         httponly=True,
         secure=settings.environment == "production",  # HTTPS only in production
         samesite="lax",  # CSRF protection
-        max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60  # 7 days in seconds
+        max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,  # 7 days in seconds
     )
 
     # Commit transaction
@@ -93,7 +91,7 @@ async def login(
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=settings.jwt_access_token_expire_minutes * 60  # Convert to seconds
+        expires_in=settings.jwt_access_token_expire_minutes * 60,  # Convert to seconds
     )
 
 
@@ -102,7 +100,7 @@ async def logout(
     response: Response,
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """User logout endpoint.
 
@@ -131,7 +129,7 @@ async def logout(
         key="refresh_token",
         httponly=True,
         secure=settings.environment == "production",
-        samesite="lax"
+        samesite="lax",
     )
 
     # Commit transaction
@@ -142,8 +140,7 @@ async def logout(
 
 @router.post("/refresh", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(
-    refresh_token: str | None = Cookie(None),
-    db: AsyncSession = Depends(get_db)
+    refresh_token: str | None = Cookie(None), db: AsyncSession = Depends(get_db)
 ):
     """Refresh access token endpoint.
 
@@ -161,8 +158,7 @@ async def refresh_token(
     """
     if not refresh_token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found"
         )
 
     auth_service = AuthService(db)
@@ -173,7 +169,7 @@ async def refresh_token(
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=settings.jwt_access_token_expire_minutes * 60
+        expires_in=settings.jwt_access_token_expire_minutes * 60,
     )
 
 
@@ -182,7 +178,7 @@ async def create_invitation(
     invite_data: InviteRequest,
     request: Request,
     current_user: User = Depends(require_admin()),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Create invitation endpoint (admin only).
 
@@ -211,7 +207,7 @@ async def create_invitation(
         email=invite_data.email,
         role=invite_data.role,
         invited_by_user=current_user,
-        ip_address=client_ip
+        ip_address=client_ip,
     )
 
     # Commit transaction
@@ -222,15 +218,15 @@ async def create_invitation(
         email=invitation.email,
         role=invitation.role.value,
         token=plaintext_token,  # Return plaintext token for email
-        expires_at=invitation.expires_at
+        expires_at=invitation.expires_at,
     )
 
 
-@router.post("/accept-invite", response_model=AcceptInviteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/accept-invite", response_model=AcceptInviteResponse, status_code=status.HTTP_201_CREATED
+)
 async def accept_invitation(
-    accept_data: AcceptInviteRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    accept_data: AcceptInviteRequest, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Accept invitation endpoint.
 
@@ -253,9 +249,7 @@ async def accept_invitation(
 
     # Accept invitation and create user
     user = await invitation_service.accept_invitation(
-        token=accept_data.token,
-        password=accept_data.password,
-        ip_address=client_ip
+        token=accept_data.token, password=accept_data.password, ip_address=client_ip
     )
 
     # Commit transaction
@@ -267,7 +261,7 @@ async def accept_invitation(
         role=user.role.value,
         org_id=user.org_id,
         is_active=user.is_active,
-        created_at=user.created_at
+        created_at=user.created_at,
     )
 
 

@@ -1,4 +1,5 @@
 """User management endpoints."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -32,10 +33,7 @@ async def list_users(
         List of users in the organization
     """
     user_service = UserService(db)
-    users = await user_service.list_users(
-        org_id=current_user.org_id,
-        role_filter=role
-    )
+    users = await user_service.list_users(org_id=current_user.org_id, role_filter=role)
 
     return [
         UserResponse(
@@ -44,7 +42,7 @@ async def list_users(
             role=user.role.value,
             is_active=user.is_active,
             last_login_at=user.last_login_at,
-            created_at=user.created_at
+            created_at=user.created_at,
         )
         for user in users
     ]
@@ -69,10 +67,7 @@ async def get_user(
         User details
     """
     user_service = UserService(db)
-    user = await user_service.get_user(
-        user_id=user_id,
-        org_id=current_user.org_id
-    )
+    user = await user_service.get_user(user_id=user_id, org_id=current_user.org_id)
 
     return UserResponse(
         id=user.id,
@@ -80,7 +75,7 @@ async def get_user(
         role=user.role.value,
         is_active=user.is_active,
         last_login_at=user.last_login_at,
-        created_at=user.created_at
+        created_at=user.created_at,
     )
 
 
@@ -119,7 +114,7 @@ async def update_user(
         if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only admins can change user roles or active status"
+                detail="Only admins can change user roles or active status",
             )
 
     user_service = UserService(db)
@@ -128,7 +123,7 @@ async def update_user(
         org_id=current_user.org_id,
         current_user=current_user,
         role=update_data.role,
-        is_active=update_data.is_active
+        is_active=update_data.is_active,
     )
 
     await db.commit()
@@ -139,7 +134,7 @@ async def update_user(
         role=user.role.value,
         is_active=user.is_active,
         last_login_at=user.last_login_at,
-        created_at=user.created_at
+        created_at=user.created_at,
     )
 
 
@@ -167,9 +162,7 @@ async def delete_user(
     """
     user_service = UserService(db)
     await user_service.delete_user(
-        user_id=user_id,
-        org_id=current_user.org_id,
-        current_user=current_user
+        user_id=user_id, org_id=current_user.org_id, current_user=current_user
     )
 
     await db.commit()

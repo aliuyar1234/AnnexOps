@@ -160,6 +160,14 @@ cd backend
 python -m pytest tests/ -v
 ```
 
+## Dev Quality (pre-commit)
+
+```bash
+python -m pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
 ## Environment Variables
 
 | Variable | Description | Default |

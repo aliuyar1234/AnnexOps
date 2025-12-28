@@ -1,4 +1,5 @@
 """Contract tests for Annex IV section endpoints."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

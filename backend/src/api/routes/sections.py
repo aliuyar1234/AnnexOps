@@ -1,4 +1,5 @@
 """API routes for Annex IV section management."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status

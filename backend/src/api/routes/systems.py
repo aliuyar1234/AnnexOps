@@ -1,4 +1,5 @@
 """API routes for AI systems."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -46,6 +47,7 @@ def _system_to_detail_response(system) -> SystemDetailResponse:
     if system.assessments:
         assessment = system.assessments[0]
         from src.schemas.ai_system import AssessmentSummary
+
         latest_assessment = AssessmentSummary(
             id=assessment.id,
             result_label=assessment.result_label.value,
