@@ -67,9 +67,12 @@ secrets/
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
 .hypothesis/
+coverage.xml
+junit*.xml
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -89,6 +92,8 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
+ehthumbs.db
 
 # Project-specific
 docker-compose.override.yml

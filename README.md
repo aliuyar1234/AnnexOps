@@ -160,6 +160,16 @@ cd backend
 python -m pytest tests/ -v
 ```
 
+## Code Quality
+
+This repo uses `pre-commit` (Ruff lint + format, plus basic hygiene checks).
+
+```bash
+python -m pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
 ## Dev Quality (pre-commit)
 
 ```bash

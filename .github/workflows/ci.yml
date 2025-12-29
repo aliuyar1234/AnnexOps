@@ -115,3 +115,16 @@ jobs:
       - name: Stop MinIO
         if: always()
         run: docker rm -f minio || true
+
+  gitleaks:
+    name: Secrets Scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@938557f6a58837331b99822ab17b8e536e7bef9 # v2.3.0
