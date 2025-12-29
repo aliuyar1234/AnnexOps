@@ -133,18 +133,18 @@ Legend:
 ## Milestone M7 — LLM Assist (P1/P2)
 
 Core “no hallucination” is already implemented; next steps focus on UX + safe usefulness:
-- [ ] M7.1 Frontend UI for draft generation per section with evidence selection
-- [ ] M7.2 Frontend UI for gap suggestions + disclaimers
-- [ ] M7.3 “Citations only” rendering: show cited evidence and block uncited claims
-- [ ] M7.4 Admin controls: provider config, disable/enable, usage reporting
+- [x] M7.1 Frontend UI for draft generation per section with evidence selection
+- [x] M7.2 Frontend UI for gap suggestions + disclaimers
+- [x] M7.3 “Citations only” rendering: show cited evidence and block uncited claims
+- [x] M7.4 Admin controls: provider config, disable/enable, usage reporting
 
 ---
 
 ## Milestone M8 — Observability & Performance (P1)
 
-- [ ] M8.1 Structured logs with correlation IDs across API + worker
-- [ ] M8.2 Metrics endpoint (Prometheus) + basic dashboards
-- [ ] M8.3 Trace export generation time + slow queries
+- [x] M8.1 Structured logs with correlation IDs across API + worker
+- [x] M8.2 Metrics endpoint (Prometheus) + basic dashboards
+- [x] M8.3 Trace export generation time + slow queries
 - [ ] M8.4 Large-evidence handling: pagination, streaming downloads, background jobs
 
 ---
