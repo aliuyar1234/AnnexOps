@@ -125,6 +125,18 @@ AnnexOps/
 
 See `ROADMAP.md` for the open-source v1+ task list.
 
+## Contributing
+
+See `CONTRIBUTING.md`.
+
+## Security
+
+See `SECURITY.md`.
+
+## License
+
+Apache-2.0 (see `LICENSE`).
+
 ## API Endpoints
 
 ### Auth

@@ -9,15 +9,24 @@ Legend:
 
 ---
 
+## Up Next
+
+- [ ] M1A.1 Frontend layout: navigation, responsive shell, error boundary
+- [ ] M1A.2 Login screen (JWT flow) + logout
+- [ ] M1F.2 Create evidence UI for all types (upload/url/git/ticket/note)
+- [ ] M1G.2 Export UI: create full export / diff export
+
+---
+
 ## Milestone M0 — OSS Project Hygiene (P0)
 
-- [ ] M0.1 Add `LICENSE` (choose: Apache-2.0 or MIT)
-- [ ] M0.2 Add `CONTRIBUTING.md` (dev setup, style, PR rules)
-- [ ] M0.3 Add `CODE_OF_CONDUCT.md`
-- [ ] M0.4 Add `SECURITY.md` (vuln reporting + supported versions)
-- [ ] M0.5 Add GitHub issue + PR templates (`.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`)
-- [ ] M0.6 Add `ROADMAP.md` sections for “Up Next” and “Help Wanted” labels
-- [ ] M0.7 Add `CHANGELOG.md` and a release process (tagging, notes)
+- [x] M0.1 Add `LICENSE` (choose: Apache-2.0 or MIT)
+- [x] M0.2 Add `CONTRIBUTING.md` (dev setup, style, PR rules)
+- [x] M0.3 Add `CODE_OF_CONDUCT.md`
+- [x] M0.4 Add `SECURITY.md` (vuln reporting + supported versions)
+- [x] M0.5 Add GitHub issue + PR templates (`.github/ISSUE_TEMPLATE/*`, `.github/pull_request_template.md`)
+- [x] M0.6 Add `ROADMAP.md` sections for “Up Next” and “Help Wanted” labels
+- [x] M0.7 Add `CHANGELOG.md` and a release process (tagging, notes)
 
 ---
 
@@ -92,10 +101,10 @@ Legend:
 
 ## Milestone M4 — Quality Bar (P0)
 
-- [ ] M4.1 Add frontend CI job (lint + build) (already started; keep green)
-- [ ] M4.2 Add backend + frontend dependency update policy (pinning, renovate config)
+- [x] M4.1 Add frontend CI job (lint + build) (already started; keep green)
+- [x] M4.2 Add backend + frontend dependency update policy (pinning, renovate config)
 - [ ] M4.3 Add end-to-end smoke test (docker compose + basic API+UI checks)
-- [ ] M4.4 Add SAST (e.g., CodeQL) + container scan (Trivy) (P1 if time)
+- [x] M4.4 Add SAST (e.g., CodeQL) + container scan (Trivy) (P1 if time)
 - [ ] M4.5 Add release artifacts (built images + checksums)
 
 ---
