@@ -60,6 +60,8 @@ Once running, visit:
 
 ```bash
 cd frontend
+# Optional (defaults to http://localhost:8000)
+# echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > .env.local
 npm install
 npm run dev
 ```

@@ -11,8 +11,9 @@ Legend:
 
 ## Up Next
 
-- [ ] M1A.1 Frontend layout: navigation, responsive shell, error boundary
-- [ ] M1A.2 Login screen (JWT flow) + logout
+- [x] M1A.1 Frontend layout: navigation, responsive shell, error boundary
+- [x] M1A.2 Login screen (JWT flow) + logout
+- [ ] M1A.4 RBAC-aware navigation (hide/disable forbidden actions)
 - [ ] M1F.2 Create evidence UI for all types (upload/url/git/ticket/note)
 - [ ] M1G.2 Export UI: create full export / diff export
 
@@ -33,9 +34,9 @@ Legend:
 ## Milestone M1 — Complete Product Flow in UI (P0)
 
 ### M1A: App Shell + Auth
-- [ ] M1A.1 Frontend layout: navigation, responsive shell, error boundary
-- [ ] M1A.2 Login screen (JWT flow) + logout
-- [ ] M1A.3 Session handling: refresh + “expired session” UX
+- [x] M1A.1 Frontend layout: navigation, responsive shell, error boundary
+- [x] M1A.2 Login screen (JWT flow) + logout
+- [x] M1A.3 Session handling: refresh + “expired session” UX
 - [ ] M1A.4 RBAC-aware navigation (hide/disable forbidden actions)
 
 ### M1B: Organization + Users
