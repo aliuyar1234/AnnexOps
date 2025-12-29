@@ -81,3 +81,44 @@ class LlmHistoryListResponse(BaseModel):
 
     items: list[LlmInteractionResponse] = Field(default_factory=list)
     total: int = Field(description="Total interactions returned")
+
+
+class LlmStatusResponse(BaseModel):
+    """Response schema for reporting LLM availability/config (admin)."""        
+
+    llm_enabled: bool
+    llm_available: bool
+    provider: str
+    model: str
+    provider_configured: bool = Field(
+        description="Whether provider credentials/config are present (never includes secrets)"
+    )
+
+
+class LlmUsageTotals(BaseModel):
+    """Aggregated usage totals for LLM interactions."""
+
+    interactions: int = Field(ge=0)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+    avg_duration_ms: float | None = Field(default=None, ge=0)
+
+
+class LlmUsageDay(BaseModel):
+    """Daily usage bucket."""
+
+    day: datetime
+    interactions: int = Field(ge=0)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+
+
+class LlmUsageResponse(BaseModel):
+    """Response schema for usage reporting (admin)."""
+
+    all_time: LlmUsageTotals
+    period_days: int = Field(ge=1, le=365)
+    period: LlmUsageTotals
+    by_day: list[LlmUsageDay] = Field(default_factory=list)

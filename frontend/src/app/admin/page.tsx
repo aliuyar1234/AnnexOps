@@ -35,9 +35,15 @@ export default function AdminHomePage() {
             <div className="text-sm font-medium">Invitations</div>
             <div className="mt-1 text-xs text-zinc-600">Invite new members</div>
           </Link>
+          <Link
+            href="/admin/llm"
+            className="rounded-xl border border-zinc-200 bg-white p-4 hover:bg-zinc-50"
+          >
+            <div className="text-sm font-medium">LLM</div>
+            <div className="mt-1 text-xs text-zinc-600">Status and config</div>
+          </Link>
         </div>
       </RequireRole>
     </AppShell>
   );
 }
-
