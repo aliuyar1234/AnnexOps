@@ -84,7 +84,9 @@ services:
       ALLOW_RAW_PII: ${ALLOW_RAW_PII:-false}
       RETENTION_DAYS: ${RETENTION_DAYS:-180}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
-      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}     
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      SLOW_QUERY_MS: ${SLOW_QUERY_MS:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -113,7 +115,9 @@ services:
       ALLOW_RAW_PII: ${ALLOW_RAW_PII:-false}
       RETENTION_DAYS: ${RETENTION_DAYS:-180}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
-      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}     
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      SLOW_QUERY_MS: ${SLOW_QUERY_MS:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,7 +141,9 @@ services:
       ALLOW_RAW_PII: ${ALLOW_RAW_PII:-false}
       RETENTION_DAYS: ${RETENTION_DAYS:-180}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
-      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}     
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      SLOW_QUERY_MS: ${SLOW_QUERY_MS:-0}
     depends_on:
       postgres:
         condition: service_healthy

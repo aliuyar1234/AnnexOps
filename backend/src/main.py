@@ -18,6 +18,7 @@ from src.api.routes import (
     llm,
     log_admin,
     logging,
+    metrics,
     mappings,
     organizations,
     sections,
@@ -83,6 +84,7 @@ app.include_router(exports.router, prefix="/api", tags=["exports"])
 app.include_router(log_admin.router, prefix="/api", tags=["logging"])
 app.include_router(logging.router, prefix="/api/v1", tags=["logging"])
 app.include_router(llm.router, prefix="/api", tags=["llm"])
+app.include_router(metrics.router, prefix="/api", tags=["metrics"])
 
 # Register /me endpoint at root /api level (per OpenAPI spec)
 

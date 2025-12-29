@@ -1,6 +1,5 @@
 """Middleware for rate limiting and request logging."""
 
-import json
 import logging
 import time
 from collections import defaultdict
@@ -11,7 +10,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from src.core.config import get_settings
+from src.core.metrics import observe_http_request
+from src.core.request_context import new_request_id, request_id_context
 from src.core.security import decode_token
+from src.core.structured_logging import log_json
 
 # Configure structured logging
 logger = logging.getLogger(__name__)
@@ -142,33 +144,81 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         """Log request details."""
-        start_time = time.time()
-        client_ip = request.client.host if request.client else "unknown"
+        incoming_request_id = (
+            request.headers.get("X-Request-ID")
+            or request.headers.get("X-Correlation-ID")
+            or request.headers.get("X-Request-Id")
+        )
+        request_id = None
+        if incoming_request_id:
+            candidate = incoming_request_id.strip()
+            if candidate and len(candidate) <= 128 and "\n" not in candidate and "\r" not in candidate:
+                request_id = candidate
+
+        if not request_id:
+            request_id = new_request_id()
+
+        request.state.request_id = request_id
+
+        start_time = time.perf_counter()
+        client_ip = request.client.host if request.client else "unknown"        
         method = request.method
         path = request.url.path
 
-        # Process request
-        response = await call_next(request)
+        with request_id_context(request_id):
+            # Process request
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                duration_ms = (time.perf_counter() - start_time) * 1000
+                log_json(
+                    logger,
+                    logging.ERROR,
+                    "request_error",
+                    method=method,
+                    path=path,
+                    status_code=500,
+                    duration_ms=round(duration_ms, 2),
+                    client_ip=client_ip,
+                    error=str(exc),
+                    exception=exc.__class__.__name__,
+                )
+                raise
 
-        # Calculate duration
-        duration_ms = (time.time() - start_time) * 1000
+            response.headers.setdefault("X-Request-ID", request_id)
 
-        # Log as structured JSON
-        log_data = {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "method": method,
-            "path": path,
-            "status_code": response.status_code,
-            "duration_ms": round(duration_ms, 2),
-            "client_ip": client_ip,
-        }
+            # Calculate duration
+            duration_ms = (time.perf_counter() - start_time) * 1000
 
-        # Log at appropriate level
-        if response.status_code >= 500:
-            logger.error(json.dumps(log_data))
-        elif response.status_code >= 400:
-            logger.warning(json.dumps(log_data))
-        else:
-            logger.info(json.dumps(log_data))
+            route_obj = request.scope.get("route")
+            route_template = getattr(route_obj, "path", None) if route_obj else None
+            if not route_template:
+                route_template = "unmatched"
 
-        return response
+            observe_http_request(
+                method=method,
+                route=route_template,
+                status_code=response.status_code,
+                duration_ms=duration_ms,
+            )
+
+            # Log at appropriate level
+            if response.status_code >= 500:
+                level = logging.ERROR
+            elif response.status_code >= 400:
+                level = logging.WARNING
+            else:
+                level = logging.INFO
+
+            log_json(
+                logger,
+                level,
+                "request",
+                method=method,
+                path=path,
+                status_code=response.status_code,
+                duration_ms=round(duration_ms, 2),
+                client_ip=client_ip,
+            )
+
+            return response

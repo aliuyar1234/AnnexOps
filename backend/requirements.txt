@@ -18,6 +18,9 @@ python-multipart>=0.0.6
 redis>=5.0.0
 celery>=5.3.0
 
+# Observability
+prometheus-client>=0.20.0
+
 # Development & Testing
 pytest>=7.4.0
 pytest-asyncio>=0.21.0

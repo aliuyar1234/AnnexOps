@@ -3,6 +3,8 @@
 import csv
 import io
 import json
+import logging
+import time
 import zipfile
 from html import escape as html_escape
 from datetime import UTC, datetime
@@ -15,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.storage import get_storage_client
+from src.core.structured_logging import log_json
 from src.models.ai_system import AISystem
 from src.models.annex_section import AnnexSection
 from src.models.enums import AuditAction
@@ -29,6 +32,8 @@ from src.services.completeness_service import get_completeness_report
 from src.services.docx_generator import generate_annex_iv_document
 from src.services.snapshot_service import SnapshotService
 from src.services.storage_service import get_storage_service
+
+logger = logging.getLogger(__name__)
 
 
 class ExportService:
@@ -177,8 +182,19 @@ class ExportService:
 
         Raises:
             HTTPException: 404 if version not found
-            HTTPException: 400 if include_diff but no compare_version_id
+            HTTPException: 400 if include_diff but no compare_version_id        
         """
+        started = time.perf_counter()
+        log_json(
+            logger,
+            logging.INFO,
+            "export_generate_start",
+            version_id=version_id,
+            org_id=org_id,
+            include_diff=include_diff,
+            compare_version_id=compare_version_id,
+        )
+
         # Validate diff params
         if include_diff and not compare_version_id:
             raise HTTPException(
@@ -462,6 +478,21 @@ class ExportService:
                 "include_diff": include_diff,
                 "compare_version_id": str(compare_version_id) if compare_version_id else None,
             },
+        )
+
+        duration_ms = (time.perf_counter() - started) * 1000
+        log_json(
+            logger,
+            logging.INFO,
+            "export_generate_done",
+            export_id=export_record.id,
+            version_id=version_id,
+            org_id=org_id,
+            include_diff=include_diff,
+            compare_version_id=compare_version_id,
+            file_size=file_size,
+            snapshot_hash=snapshot_hash,
+            duration_ms=round(duration_ms, 2),
         )
 
         return export_record
