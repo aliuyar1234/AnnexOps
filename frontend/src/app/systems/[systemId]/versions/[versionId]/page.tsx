@@ -155,6 +155,18 @@ export default function VersionDetailPage() {
               Open sections
             </Link>
             <Link
+              href={`/systems/${systemId}/versions/${versionId}/coverage`}
+              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
+            >
+              Coverage
+            </Link>
+            <Link
+              href={`/systems/${systemId}/versions/${versionId}/decision-logs`}
+              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
+            >
+              Decision logs
+            </Link>
+            <Link
               href={`/systems/${systemId}/versions/${versionId}/exports`}
               className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
             >

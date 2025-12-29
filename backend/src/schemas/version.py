@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models.enums import VersionStatus
 
@@ -20,8 +20,26 @@ class UserSummary(BaseModel):
 class CreateVersionRequest(BaseModel):
     """Request schema for creating a system version."""
 
+    model_config = ConfigDict(extra="forbid")
+
     label: str = Field(..., min_length=1, max_length=50)
-    notes: str | None = None
+    notes: str | None = Field(None, max_length=5000)
+
+    @field_validator("label")
+    @classmethod
+    def strip_label(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("label cannot be empty")
+        return v
+
+    @field_validator("notes")
+    @classmethod
+    def strip_notes(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class VersionResponse(BaseModel):
@@ -50,8 +68,18 @@ class VersionListResponse(BaseModel):
 class StatusChangeRequest(BaseModel):
     """Request schema for changing version status."""
 
+    model_config = ConfigDict(extra="forbid")
+
     status: VersionStatus
-    comment: str | None = None
+    comment: str | None = Field(None, max_length=2000)
+
+    @field_validator("comment")
+    @classmethod
+    def strip_comment(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class VersionSummary(BaseModel):
@@ -92,8 +120,18 @@ class VersionDiffResponse(BaseModel):
 class UpdateVersionRequest(BaseModel):
     """Request schema for updating a system version."""
 
-    notes: str | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    notes: str | None = Field(None, max_length=5000)
     release_date: date | None = None
+
+    @field_validator("notes")
+    @classmethod
+    def strip_notes(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class VersionDetailResponse(VersionResponse):
@@ -111,4 +149,14 @@ class VersionDetailResponse(VersionResponse):
 class CloneVersionRequest(BaseModel):
     """Request schema for cloning a system version."""
 
+    model_config = ConfigDict(extra="forbid")
+
     label: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-zA-Z0-9._-]+$")
+
+    @field_validator("label")
+    @classmethod
+    def strip_label(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("label cannot be empty")
+        return v

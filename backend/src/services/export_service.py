@@ -613,7 +613,10 @@ class ExportService:
 
       <div class="card" style="margin-top: 14px;">
         <h2>Sections</h2>
+        <input id="section-search" class="search" placeholder="Search key/title…" />
+        <div style="height: 10px;"></div>
         <div id="sections"></div>
+        <div id="section-detail" style="margin-top: 12px;"></div>
       </div>
 
       <div class="card" style="margin-top: 14px;">
@@ -652,11 +655,27 @@ class ExportService:
       const diff = JSON.parse(document.getElementById('annexops-diff').textContent);
 
       const systemKv = document.getElementById('system-kv');
-      const completenessKv = document.getElementById('completeness-kv');
+      const completenessKv = document.getElementById('completeness-kv');        
+
+      const esc = (value) => {
+        const s = String(value ?? '');
+        return s.replace(/[&<>"']/g, (c) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        }[c]));
+      };
 
       const row = (k, v, mono=false) => `
-        <div class="k">${k}</div>
-        <div class="${mono ? 'mono' : ''}">${v ?? ''}</div>
+        <div class="k">${esc(k)}</div>
+        <div class="${mono ? 'mono' : ''}">${esc(v)}</div>
+      `;
+
+      const rowHtml = (k, vHtml, mono=false) => `
+        <div class="k">${esc(k)}</div>
+        <div class="${mono ? 'mono' : ''}">${vHtml}</div>
       `;
 
       systemKv.innerHTML = [
@@ -664,36 +683,181 @@ class ExportService:
         row('System', manifest.ai_system?.name),
         row('Version', manifest.system_version?.label),
         row('Status', manifest.system_version?.status),
-        row('Snapshot Hash', `<span class="mono">${manifest.snapshot_hash || ''}</span>`),
+        row('Snapshot Hash', manifest.snapshot_hash || '', true),
       ].join('');
 
       const score = Number(completeness?.overall_score ?? 0);
-      const dotClass = score >= 0.8 ? 'good' : 'warn';
+      const dotClass = score >= 80 ? 'good' : 'warn';
       completenessKv.innerHTML = [
-        row('Overall Score', `<span class="score"><span class="dot ${dotClass}"></span>${Math.round(score * 100)}%</span>`),
-        row('Generated At', `<span class="mono">${completeness?.generated_at || ''}</span>`),
+        rowHtml('Overall Score', `<span class="score"><span class="dot ${dotClass}"></span>${Math.round(score)}%</span>`),
+        row('Generated At', completeness?.generated_at || '', true),
       ].join('');
 
-      // Sections list
+      // Sections list + drill-down
       const sectionsRoot = document.getElementById('sections');
+      const sectionSearchEl = document.getElementById('section-search');
+      const sectionDetailEl = document.getElementById('section-detail');
+
       const sections = manifest.annex_sections || {};
       const keys = Object.keys(sections).sort();
-      sectionsRoot.innerHTML = `
-        <table>
-          <thead>
-            <tr><th style="width:240px;">Key</th><th>Evidence Refs</th></tr>
-          </thead>
-          <tbody>
-            ${keys.map(k => {
-              const refs = (sections[k].evidence_refs || []).slice().sort();
-              return `<tr>
-                <td class="mono">${k}</td>
-                <td>${refs.length ? refs.map(r => `<span class="pill mono" title="${r}">${r.slice(0, 8)}…</span>`).join(' ') : '<span class="pill">none</span>'}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      `;
+
+      const completenessByKey = new Map();
+      (completeness?.sections || []).forEach((s) => completenessByKey.set(s.section_key, s));
+
+      const evidenceById = new Map((evidence || []).map((e) => [e.id, e]));
+
+      const pretty = (obj) => {
+        try {
+          return JSON.stringify(obj || {}, null, 2);
+        } catch {
+          return String(obj || '');
+        }
+      };
+
+      const renderSectionDetail = (key) => {
+        if (!sectionDetailEl) return;
+        const data = sections[key];
+        if (!data) {
+          sectionDetailEl.innerHTML = '<span class="pill">Section not found.</span>';
+          return;
+        }
+
+        const comp = completenessByKey.get(key) || null;
+        const title = comp?.title || '';
+        const sectionScore = Number(comp?.score ?? 0);
+        const refs = (data.evidence_refs || []).slice().sort();
+        const fieldCompletion = comp?.field_completion || {};
+        const fields = Object.keys(fieldCompletion).sort();
+
+        const fieldsHtml = fields.length
+          ? fields
+              .map((f) => {
+                const ok = Boolean(fieldCompletion[f]);
+                const d = ok ? 'good' : 'warn';
+                return `<span class="pill" title="${esc(f)}"><span class="dot ${d}"></span> ${esc(f)}</span>`;
+              })
+              .join(' ')
+          : '<span class="pill">none</span>';
+
+        const refRows = refs
+          .map((id) => {
+            const ev = evidenceById.get(id) || {};
+            return `<tr>
+              <td class="mono">${esc(id)}</td>
+              <td>${esc(ev.title || '')}</td>
+              <td><span class="pill">${esc(ev.type || '')}</span></td>
+              <td><span class="pill">${esc(ev.classification || '')}</span></td>
+            </tr>`;
+          })
+          .join('');
+
+        sectionDetailEl.innerHTML = `
+          <div style="border-top: 1px solid var(--border); padding-top: 12px;">
+            <div class="badge">Section detail</div>
+            <div style="height: 10px;"></div>
+            <div class="kv">
+              ${row('Key', key, true)}
+              ${row('Title', title)}
+              ${rowHtml(
+                'Score',
+                `<span class="score"><span class="dot ${sectionScore >= 80 ? 'good' : 'warn'}"></span>${Math.round(sectionScore)}%</span>`,
+              )}
+              ${row('Evidence refs', String(refs.length), true)}
+            </div>
+
+            <div style="margin-top: 12px;">
+              <div class="k" style="margin-bottom: 6px;">Required fields</div>
+              <div style="display:flex; flex-wrap: wrap; gap: 6px;">${fieldsHtml}</div>
+            </div>
+
+            <div style="margin-top: 12px;">
+              <div class="k" style="margin-bottom: 6px;">Evidence</div>
+              ${refs.length ? `
+                <div style="overflow:auto;">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style="width: 220px;">Evidence ID</th>
+                        <th>Title</th>
+                        <th style="width: 90px;">Type</th>
+                        <th style="width: 120px;">Classification</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${refRows}
+                    </tbody>
+                  </table>
+                </div>
+              ` : '<span class="pill">none</span>'}
+            </div>
+
+            <div style="margin-top: 12px;">
+              <div class="k" style="margin-bottom: 6px;">Content (JSON)</div>
+              <pre class="mono" style="white-space: pre; overflow:auto; border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: rgba(0,0,0,0.25);">${esc(pretty(data.content || {}))}</pre>
+            </div>
+          </div>
+        `;
+      };
+
+      const renderSections = (q) => {
+        const query = (q || '').trim().toLowerCase();
+        const filteredKeys = keys.filter((k) => {
+          if (!query) return true;
+          const title = String(completenessByKey.get(k)?.title || '').toLowerCase();
+          return k.toLowerCase().includes(query) || title.includes(query);
+        });
+
+        sectionsRoot.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th style="width:240px;">Key</th>
+                <th>Title</th>
+                <th style="width:90px;">Score</th>
+                <th>Evidence Refs</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredKeys
+                .map((k) => {
+                  const refs = (sections[k].evidence_refs || []).slice().sort();
+                  const comp = completenessByKey.get(k) || null;
+                  const title = comp?.title || '';
+                  const sectionScore = Number(comp?.score ?? 0);
+                  const pillRefs = refs
+                    .slice(0, 6)
+                    .map((r) => `<span class="pill mono" title="${esc(r)}">${esc(r.slice(0, 8))}…</span>`)
+                    .join(' ');
+                  const more = refs.length > 6 ? `<span class="pill">+${refs.length - 6}</span>` : '';
+
+                  return `<tr>
+                    <td class="mono"><a href="#" data-section-key="${esc(k)}">${esc(k)}</a></td>
+                    <td>${esc(title)}</td>
+                    <td><span class="pill">${Math.round(sectionScore)}%</span></td>
+                    <td>${refs.length ? `${pillRefs} ${more}` : '<span class="pill">none</span>'}</td>
+                  </tr>`;
+                })
+                .join('')}
+            </tbody>
+          </table>
+        `;
+
+        sectionsRoot.querySelectorAll('[data-section-key]').forEach((el) => {
+          el.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            const key = el.getAttribute('data-section-key');
+            if (key) renderSectionDetail(key);
+          });
+        });
+      };
+
+      if (sectionSearchEl) {
+        sectionSearchEl.addEventListener('input', (ev) => renderSections(ev.target.value));
+      }
+      if (sectionDetailEl) {
+        sectionDetailEl.innerHTML = '<span class="pill">Select a section to see details.</span>';
+      }
+      renderSections('');
 
       // Evidence table with search
       const rowsEl = document.getElementById('evidence-rows');
@@ -713,12 +877,12 @@ class ExportService:
           const tags = (e.tags || []).slice().sort();
           return `<tr>
             <td>
-              <div>${e.title || ''}</div>
-              <div class="mono" style="color: var(--muted); margin-top: 4px;">${e.id}</div>
+              <div>${esc(e.title || '')}</div>
+              <div class="mono" style="color: var(--muted); margin-top: 4px;">${esc(e.id)}</div>
             </td>
-            <td><span class="pill">${e.type}</span></td>
-            <td><span class="pill">${e.classification}</span></td>
-            <td>${tags.length ? tags.map(t => `<span class="pill">${t}</span>`).join(' ') : '<span class="pill">—</span>'}</td>
+            <td><span class="pill">${esc(e.type)}</span></td>
+            <td><span class="pill">${esc(e.classification)}</span></td>
+            <td>${tags.length ? tags.map(t => `<span class="pill">${esc(t)}</span>`).join(' ') : '<span class="pill">—</span>'}</td>
           </tr>`;
         }).join('');
       };
@@ -740,8 +904,8 @@ class ExportService:
               <thead><tr><th style="width:240px;">Section</th><th style="width:120px;">Type</th><th>Details</th></tr></thead>
               <tbody>
                 ${changes.map(c => `<tr>
-                  <td class="mono">${c.section_key}</td>
-                  <td><span class="pill">${c.change_type}</span></td>
+                  <td class="mono">${esc(c.section_key)}</td>
+                  <td><span class="pill">${esc(c.change_type)}</span></td>
                   <td class="mono" style="color: var(--muted);">Keys: current=${Object.keys(c.current_content||{}).length}, prev=${Object.keys(c.previous_content||{}).length}</td>
                 </tr>`).join('')}
               </tbody>

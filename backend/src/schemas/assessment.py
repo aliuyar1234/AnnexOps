@@ -27,14 +27,18 @@ class WizardQuestions(BaseModel):
 class AnswerItem(BaseModel):
     """Single answer to a wizard question."""
 
-    question_id: str
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str = Field(..., min_length=1, max_length=100)
     answer: bool
 
 
 class AssessmentSubmission(BaseModel):
     """Request schema for submitting an assessment."""
 
-    answers: list[AnswerItem]
+    model_config = ConfigDict(extra="forbid")
+
+    answers: list[AnswerItem] = Field(..., min_length=1, max_length=200)
     notes: str | None = Field(None, max_length=2000)
 
 

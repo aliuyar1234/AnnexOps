@@ -28,6 +28,7 @@ from src.models.invitation import Invitation
 from src.models.llm_interaction import LlmInteraction
 from src.models.log_api_key import LogApiKey
 from src.models.organization import Organization
+from src.models.section_comment import SectionComment
 from src.models.system_attachment import SystemAttachment
 from src.models.system_version import SystemVersion
 from src.models.user import User
@@ -63,4 +64,5 @@ __all__ = [
     "LogApiKey",
     "DecisionLog",
     "LlmInteraction",
+    "SectionComment",
 ]

@@ -42,6 +42,13 @@ export default function AdminHomePage() {
             <div className="text-sm font-medium">LLM</div>
             <div className="mt-1 text-xs text-zinc-600">Status and config</div>
           </Link>
+          <Link
+            href="/admin/audit"
+            className="rounded-xl border border-zinc-200 bg-white p-4 hover:bg-zinc-50"
+          >
+            <div className="text-sm font-medium">Audit log</div>
+            <div className="mt-1 text-xs text-zinc-600">Who did what, when</div>
+          </Link>
         </div>
       </RequireRole>
     </AppShell>

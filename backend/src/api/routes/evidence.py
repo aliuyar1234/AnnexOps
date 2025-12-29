@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import require_role
@@ -24,6 +24,10 @@ from src.services.evidence_service import EvidenceService
 from src.services.storage_service import get_storage_service
 
 router = APIRouter()
+
+_MAX_SEARCH_LEN = 200
+_MAX_TAGS = 20
+_MAX_TAG_LEN = 50
 
 
 def _evidence_to_response(evidence) -> EvidenceResponse:
@@ -76,8 +80,6 @@ async def get_upload_url(
     from src.services.evidence_service import ALLOWED_MIME_TYPES
 
     if request.mime_type not in ALLOWED_MIME_TYPES:
-        from fastapi import HTTPException
-
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=f"File type '{request.mime_type}' is not allowed",
@@ -136,17 +138,22 @@ async def create_evidence(
         storage_uri = request.type_metadata.get("storage_uri")
 
         if not storage_uri:
-            from fastapi import HTTPException
-
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="storage_uri is required for upload type",
             )
 
+        # Ensure the storage key is within the current org's namespace to avoid
+        # cross-org object access via user-supplied keys.
+        org_prefix = f"evidence/{current_user.org_id}/"
+        if not isinstance(storage_uri, str) or not storage_uri.startswith(org_prefix):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="storage_uri is invalid for this organization",
+            )
+
         # Verify file exists
         if not storage_service.file_exists(storage_uri):
-            from fastapi import HTTPException
-
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="File not found in storage. Please upload the file first.",
@@ -155,7 +162,8 @@ async def create_evidence(
         # Get file metadata and compute checksum
         file_metadata = storage_service.get_file_metadata(storage_uri)
 
-        # Update type_metadata with actual file size and checksum
+        # Update type_metadata with actual file size, MIME type, and checksum.
+        request.type_metadata["mime_type"] = file_metadata["mime_type"]
         request.type_metadata["file_size"] = file_metadata["file_size"]
         request.type_metadata["checksum_sha256"] = storage_service.compute_checksum(storage_uri)
 
@@ -173,7 +181,11 @@ async def create_evidence(
     summary="List and search evidence items",
 )
 async def list_evidence(
-    search: str | None = Query(None, description="Full-text search on title and description"),
+    search: str | None = Query(
+        None,
+        max_length=_MAX_SEARCH_LEN,
+        description="Full-text search on title and description",
+    ),
     tags: list[str] | None = Query(None, description="Filter by tags (must have ALL tags)"),
     evidence_type: EvidenceType | None = Query(
         None, alias="type", description="Filter by evidence type"
@@ -214,6 +226,19 @@ async def list_evidence(
     Returns:
         EvidenceListResponse with items (including usage_count), total count, limit, and offset
     """
+    if tags is not None:
+        if len(tags) > _MAX_TAGS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Maximum {_MAX_TAGS} tags allowed",
+            )
+        for tag in tags:
+            if not isinstance(tag, str) or len(tag) < 1 or len(tag) > _MAX_TAG_LEN:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Each tag must be 1-{_MAX_TAG_LEN} characters",
+                )
+
     service = EvidenceService(db)
     evidence_items, total = await service.list(
         org_id=current_user.org_id,
@@ -257,8 +282,6 @@ async def get_evidence(
     Raises:
         HTTPException: 404 if evidence not found
     """
-    from fastapi import HTTPException
-
     service = EvidenceService(db)
     evidence, usage_count, mapped_versions = await service.get_by_id_with_details(
         evidence_id, current_user.org_id
@@ -308,7 +331,6 @@ async def download_evidence(
     Raises:
         HTTPException: 404 if evidence not found, 400 if not upload type
     """
-    from fastapi import HTTPException
     from fastapi.responses import RedirectResponse
 
     service = EvidenceService(db)
@@ -335,6 +357,13 @@ async def download_evidence(
             detail="Storage URI not found in evidence metadata",
         )
 
+    org_prefix = f"evidence/{current_user.org_id}/"
+    if not isinstance(storage_uri, str) or not storage_uri.startswith(org_prefix):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="storage_uri is invalid for this organization",
+        )
+
     # Generate presigned download URL
     storage_service = get_storage_service()
     download_url = storage_service.generate_download_url(storage_uri, expires_in=3600)
@@ -356,8 +385,6 @@ async def get_evidence_download_url(
 
     Only works for upload type evidence.
     """
-    from fastapi import HTTPException
-
     service = EvidenceService(db)
     evidence = await service.get_by_id(evidence_id, current_user.org_id)
 
@@ -378,6 +405,13 @@ async def get_evidence_download_url(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Storage URI not found in evidence metadata",
+        )
+
+    org_prefix = f"evidence/{current_user.org_id}/"
+    if not isinstance(storage_uri, str) or not storage_uri.startswith(org_prefix):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="storage_uri is invalid for this organization",
         )
 
     storage_service = get_storage_service()
@@ -418,8 +452,9 @@ async def update_evidence(
     """
     service = EvidenceService(db)
 
-    # Convert request to dict, excluding None values
-    updates = request.model_dump(exclude_none=True)
+    # Convert request to dict, excluding fields that were not provided.
+    # This preserves explicit nulls so clients can clear optional fields.
+    updates = request.model_dump(exclude_unset=True)
 
     # Update evidence
     evidence = await service.update(evidence_id, updates, current_user)

@@ -98,6 +98,17 @@ services:
         condition: service_completed_successfully
     ports:
       - "127.0.0.1:8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen("http://localhost:8000/api/health").read();
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   celery-worker:
     build:
@@ -124,6 +135,22 @@ services:
       redis:
         condition: service_healthy
     command: celery -A src.tasks.celery_app.celery_app worker -l info
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import os, subprocess, sys;
+          out=subprocess.check_output(
+            ["celery","-A","src.tasks.celery_app.celery_app","inspect","ping","-d",f"celery@{os.environ.get('HOSTNAME','')}","-t","5"],
+            stderr=subprocess.STDOUT,
+            text=True,
+          );
+          sys.exit(0 if "pong" in out else 1)
+      interval: 20s
+      timeout: 10s
+      retries: 10
 
   celery-beat:
     build:

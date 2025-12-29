@@ -60,10 +60,30 @@ Once running, visit:
 
 ```bash
 cd frontend
-# Optional (defaults to http://localhost:8000)
-# echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > .env.local
+# Proxies `/api/*` to the backend (defaults to http://localhost:8000).
+# Override if your backend runs elsewhere:
+# echo "ANNEXOPS_API_INTERNAL_URL=http://localhost:8000" > .env.local
 npm install
 npm run dev
+```
+
+### Production (Docker Compose)
+
+This repo includes a production-oriented compose file with a separate frontend container
+and a reverse proxy:
+
+```bash
+cp .env.example .env
+# Fill required values (POSTGRES_PASSWORD, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, JWT_SECRET, BOOTSTRAP_TOKEN)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+### Demo Dataset (Optional)
+
+Creates a small demo org/system/version and (by default) generates an export:
+
+```bash
+docker compose exec -e DEMO_ADMIN_PASSWORD='YourStrongPassword123!' api python scripts/demo_walkthrough.py
 ```
 
 ### Bootstrap (First Organization)
@@ -221,7 +241,34 @@ pre-commit run --all-files
 | MINIO_SECRET_KEY | MinIO secret key | - |
 | MINIO_BUCKET | Bucket name | `annexops-attachments` |
 | MINIO_USE_SSL | Use SSL for MinIO | `false` |
+| ALLOW_RAW_PII | Allow raw PII in decision logs (Module F) | `false` |
+| RETENTION_DAYS | Decision log retention window (days) | `180` |
+| CORS_ALLOW_ORIGINS | Allowed CORS origins (CSV or JSON list) | `http://localhost:3000` |
+| CORS_ALLOW_METHODS | Allowed CORS methods (CSV or JSON list) | `GET,POST,PUT,PATCH,DELETE,OPTIONS` |
+| CORS_ALLOW_HEADERS | Allowed CORS headers (CSV or JSON list) | `Accept,Authorization,Content-Type,X-Request-ID,X-Bootstrap-Token,X-API-Key,X-Metrics-Token` |
+| CORS_ALLOW_CREDENTIALS | Allow cookies/credentials for CORS | `true` |
+| REFRESH_COOKIE_NAME | Refresh token cookie name | `refresh_token` |
+| REFRESH_COOKIE_PATH | Refresh token cookie path | `/api/auth/refresh` |
+| REFRESH_COOKIE_DOMAIN | Refresh token cookie domain (optional) | - |
+| REFRESH_COOKIE_SAMESITE | Refresh token cookie samesite (`lax`/`strict`/`none`) | `lax` |
+| REFRESH_COOKIE_SECURE | Force secure refresh cookie (optional) | - |
+| RATE_LIMIT_WRITE_PER_MINUTE | Write requests per minute per user/IP (production) | `120` |
+| RATE_LIMIT_REFRESH_PER_MINUTE | Refresh requests per minute per user/IP (production) | `60` |
+| RATE_LIMIT_ACCEPT_INVITE_PER_HOUR | Accept-invite requests per hour per IP (production) | `20` |
+| METRICS_TOKEN | Protect `/api/metrics` in production (header `X-Metrics-Token`) | - |
+| SLOW_QUERY_MS | Log SQL queries slower than threshold (0 disables) | `0` |
+
+## Retention (Module F)
+
+Decision log events are automatically purged by the daily Celery Beat task `src.tasks.retention_task.cleanup_retention`.
+Configure the window via `RETENTION_DAYS` and ensure `celery-beat` is running in production.
+
+## Privacy (GDPR basics)
+
+- Avoid storing personal data in evidence metadata unless necessary; use `classification` + tags to help control access.
+- Decision logs can include personal data depending on what you ingest; keep `ALLOW_RAW_PII=false` unless you have an explicit need and clear legal basis.
+- Retention currently applies to decision logs only; evidence items and exports are retained until explicitly removed.
 
 ## License
 
-Proprietary - All rights reserved.
+Apache-2.0 (see `LICENSE`).

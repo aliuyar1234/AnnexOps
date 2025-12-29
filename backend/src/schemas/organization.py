@@ -16,6 +16,8 @@ class CreateOrganizationRequest(BaseModel):
     Creates organization with initial admin user.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1, max_length=255, description="Organization display name")
     admin_email: EmailStr = Field(..., description="Email address for the initial admin user")
     admin_password: str = Field(
@@ -37,6 +39,8 @@ class OrganizationUpdateRequest(BaseModel):
     Used for PATCH /organizations/{org_id} endpoint.
     All fields are optional (partial update).
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str | None = Field(
         None, min_length=1, max_length=255, description="Organization display name"

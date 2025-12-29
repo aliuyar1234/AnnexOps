@@ -44,8 +44,8 @@ def _attachment_to_response(attachment) -> AttachmentResponse:
 async def upload_attachment(
     system_id: UUID,
     file: UploadFile = File(...),
-    title: str = Form(...),
-    description: str | None = Form(None),
+    title: str = Form(..., min_length=1, max_length=255),
+    description: str | None = Form(None, max_length=5000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.EDITOR)),
 ) -> AttachmentResponse:

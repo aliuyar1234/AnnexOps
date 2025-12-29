@@ -206,6 +206,48 @@ async def test_update_section_with_evidence_refs_returns_200(
 
 
 @pytest.mark.asyncio
+async def test_update_section_returns_409_on_optimistic_concurrency_conflict(
+    client: AsyncClient,
+    db: AsyncSession,
+    test_org: Organization,
+    test_editor_user: User,
+    test_ai_system: AISystem,
+    test_version: SystemVersion,
+):
+    """PATCH /systems/{id}/versions/{vid}/sections/{key} returns 409 on concurrency conflict."""
+    token = create_access_token({"sub": str(test_editor_user.id)})
+
+    get_response = await client.get(
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert get_response.status_code == 200
+    initial_updated_at = get_response.json()["updated_at"]
+
+    first_update = await client.patch(
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        json={
+            "content": {"risk_management_system_description": "First update"},
+            "expected_updated_at": initial_updated_at,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert first_update.status_code == 200
+
+    conflict_update = await client.patch(
+        f"/api/systems/{test_ai_system.id}/versions/{test_version.id}/sections/ANNEX4.RISK_MANAGEMENT",
+        json={
+            "content": {"risk_management_system_description": "Conflicting update"},
+            "expected_updated_at": initial_updated_at,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert conflict_update.status_code == 409
+    data = conflict_update.json()
+    assert data["detail"]["reason"] == "optimistic_concurrency"
+
+
+@pytest.mark.asyncio
 async def test_update_section_returns_403_for_viewer_role(
     client: AsyncClient,
     db: AsyncSession,

@@ -55,24 +55,68 @@ class NoteMetadata(BaseModel):
 class UploadMetadata(BaseModel):
     """Metadata schema for Upload type evidence."""
 
-    storage_uri: str = Field(..., description="Storage location URI")
+    storage_uri: str = Field(..., min_length=1, max_length=500, description="Storage location URI")
     checksum_sha256: str = Field(..., min_length=64, max_length=64, description="SHA-256 checksum")
     file_size: int = Field(..., gt=0, description="File size in bytes")
-    mime_type: str = Field(..., min_length=1, description="MIME type of file")
+    mime_type: str = Field(..., min_length=1, max_length=200, description="MIME type of file")
     original_filename: str = Field(
         ..., min_length=1, max_length=255, description="Original filename"
     )
+
+    @field_validator("storage_uri")
+    @classmethod
+    def strip_storage_uri(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("storage_uri cannot be empty")
+        return v
+
+    @field_validator("mime_type")
+    @classmethod
+    def strip_mime_type(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("mime_type cannot be empty")
+        return v
+
+    @field_validator("original_filename")
+    @classmethod
+    def validate_original_filename(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("original_filename cannot be empty")
+        if "/" in v or "\\" in v:
+            raise ValueError("original_filename must not contain path separators")
+        return v
 
 
 class CreateEvidenceRequest(BaseModel):
     """Request schema for creating an evidence item."""
 
+    model_config = ConfigDict(extra="forbid")
+
     type: EvidenceType
     title: str = Field(..., min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     tags: list[str] = Field(default_factory=list, max_length=20)
     classification: Classification = Classification.INTERNAL
     type_metadata: dict = Field(..., description="Type-specific metadata")
+
+    @field_validator("title")
+    @classmethod
+    def strip_title(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("title cannot be empty")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def strip_description(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
     @field_validator("tags")
     @classmethod
@@ -80,10 +124,13 @@ class CreateEvidenceRequest(BaseModel):
         """Validate tag constraints."""
         if len(v) > 20:
             raise ValueError("Maximum 20 tags allowed")
+        stripped: list[str] = []
         for tag in v:
+            tag = tag.strip()
             if len(tag) < 1 or len(tag) > 50:
                 raise ValueError("Each tag must be 1-50 characters")
-        return v
+            stripped.append(tag)
+        return stripped
 
     @field_validator("type_metadata")
     @classmethod
@@ -150,8 +197,28 @@ class EvidenceResponse(BaseModel):
 class UploadUrlRequest(BaseModel):
     """Request schema for presigned upload URL generation."""
 
+    model_config = ConfigDict(extra="forbid")
+
     filename: str = Field(..., min_length=1, max_length=255)
-    mime_type: str = Field(..., min_length=1)
+    mime_type: str = Field(..., min_length=1, max_length=200)
+
+    @field_validator("filename")
+    @classmethod
+    def validate_filename(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("filename cannot be empty")
+        if "/" in v or "\\" in v:
+            raise ValueError("filename must not contain path separators")
+        return v
+
+    @field_validator("mime_type")
+    @classmethod
+    def strip_mime_type(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("mime_type cannot be empty")
+        return v
 
 
 class UploadUrlResponse(BaseModel):
@@ -210,12 +277,31 @@ class UpdateEvidenceRequest(BaseModel):
 
     All fields are optional. Only provided fields will be updated.
     """
+    model_config = ConfigDict(extra="forbid")
 
     title: str | None = Field(None, min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     tags: list[str] | None = Field(None, max_length=20)
     classification: Classification | None = None
     type_metadata: dict | None = None
+
+    @field_validator("title")
+    @classmethod
+    def strip_title(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            raise ValueError("title cannot be empty")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def strip_description(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
     @field_validator("tags")
     @classmethod
@@ -225,10 +311,13 @@ class UpdateEvidenceRequest(BaseModel):
             return v
         if len(v) > 20:
             raise ValueError("Maximum 20 tags allowed")
+        stripped: list[str] = []
         for tag in v:
+            tag = tag.strip()
             if len(tag) < 1 or len(tag) > 50:
                 raise ValueError("Each tag must be 1-50 characters")
-        return v
+            stripped.append(tag)
+        return stripped
 
     @field_validator("type_metadata")
     @classmethod

@@ -3,19 +3,33 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class DraftRequest(BaseModel):
     """Request schema for generating an LLM draft."""
 
+    model_config = ConfigDict(extra="forbid")
+
     version_id: UUID = Field(description="System version ID")
     selected_evidence_ids: list[UUID] = Field(
-        default_factory=list, description="Evidence items selected by the user"
+        default_factory=list,
+        max_length=50,
+        description="Evidence items selected by the user",
     )
     instructions: str | None = Field(
-        default=None, description="Optional user guidance (tone, focus areas)"
+        default=None,
+        max_length=2000,
+        description="Optional user guidance (tone, focus areas)",
     )
+
+    @field_validator("instructions")
+    @classmethod
+    def strip_instructions(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class DraftResponse(BaseModel):
@@ -35,6 +49,8 @@ class DraftResponse(BaseModel):
 
 class GapRequest(BaseModel):
     """Request schema for gap suggestions."""
+
+    model_config = ConfigDict(extra="forbid")
 
     version_id: UUID = Field(description="System version ID")
 

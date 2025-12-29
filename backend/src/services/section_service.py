@@ -1,5 +1,6 @@
 """Service for managing Annex IV sections."""
 
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -178,6 +179,8 @@ class SectionService:
         section_key: str,
         content: dict | None,
         evidence_refs: list[UUID] | None,
+        expected_updated_at: datetime | None,
+        force: bool,
         current_user: User,
     ) -> AnnexSection:
         """Update section content and/or evidence references.
@@ -186,7 +189,9 @@ class SectionService:
             version_id: System version ID
             section_key: Section key (e.g., "ANNEX4.RISK_MANAGEMENT")
             content: New JSONB content (None to keep existing)
-            evidence_refs: New evidence references (None to keep existing)
+            evidence_refs: New evidence references (None to keep existing)      
+            expected_updated_at: Optional last known updated_at timestamp for optimistic concurrency
+            force: If true, overwrite even when updated_at has changed
             current_user: User performing the update
 
         Returns:
@@ -222,6 +227,19 @@ class SectionService:
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Cannot edit section: version is approved and has exports (immutable)",
                 )
+
+        if expected_updated_at and not force and section.updated_at != expected_updated_at:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Section update conflict",
+                    "reason": "optimistic_concurrency",
+                    "current_updated_at": section.updated_at.isoformat(),
+                    "current_last_edited_by": str(section.last_edited_by)
+                    if section.last_edited_by
+                    else None,
+                },
+            )
 
         # Track changes for audit
         changes = {}

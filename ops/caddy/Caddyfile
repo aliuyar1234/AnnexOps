@@ -1,0 +1,14 @@
+{
+	# Provide a predictable HTTP-only baseline.
+	auto_https off
+}
+
+:80 {
+	encode gzip
+
+	@api path /api/*
+	reverse_proxy @api api:8000
+
+	reverse_proxy frontend:3000
+}
+

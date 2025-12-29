@@ -45,7 +45,7 @@ class UserUpdateRequest(BaseModel):
     All fields are optional for partial updates.
     """
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(extra="forbid")
 
     role: str | None = Field(
         None,

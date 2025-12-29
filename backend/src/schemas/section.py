@@ -31,10 +31,17 @@ class UpdateSectionRequest(BaseModel):
 
     content: dict | None = Field(None, description="JSONB section content to update")
     evidence_refs: list[UUID] | None = Field(
-        None, description="List of evidence item IDs to associate with this section"
+        None,
+        max_length=200,
+        description="List of evidence item IDs to associate with this section",
+    )
+    expected_updated_at: datetime | None = Field(
+        None,
+        description="Last known section updated_at for optimistic concurrency control",
     )
 
     model_config = ConfigDict(
+        extra="forbid",
         json_schema_extra={
             "example": {
                 "content": {

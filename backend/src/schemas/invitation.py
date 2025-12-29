@@ -17,6 +17,8 @@ class InviteRequest(BaseModel):
     Used for POST /auth/invite endpoint.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr = Field(..., description="Email address of the user to invite")
     role: UserRole = Field(..., description="Role to assign to the invited user")
 
@@ -43,8 +45,10 @@ class AcceptInviteRequest(BaseModel):
     Used for POST /auth/accept-invite endpoint.
     """
 
-    token: str = Field(..., min_length=32, description="Invitation token from email")
-    password: str = Field(..., min_length=8, description="Password for new user account")
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(..., min_length=32, max_length=512, description="Invitation token from email")
+    password: str = Field(..., min_length=8, max_length=512, description="Password for new user account")
 
 
 class AcceptInviteResponse(BaseModel):

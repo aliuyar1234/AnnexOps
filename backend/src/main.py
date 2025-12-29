@@ -12,6 +12,7 @@ from src.api.middleware import (
 from src.api.routes import (
     assessments,
     attachments,
+    audit_admin,
     auth,
     evidence,
     exports,
@@ -57,10 +58,10 @@ app.add_middleware(RateLimitMiddleware)
 # 4. CORS (applied after rate limiting)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend development URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_allow_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 
@@ -85,6 +86,7 @@ app.include_router(log_admin.router, prefix="/api", tags=["logging"])
 app.include_router(logging.router, prefix="/api/v1", tags=["logging"])
 app.include_router(llm.router, prefix="/api", tags=["llm"])
 app.include_router(metrics.router, prefix="/api", tags=["metrics"])
+app.include_router(audit_admin.router, prefix="/api/admin", tags=["audit"])
 
 # Register /me endpoint at root /api level (per OpenAPI spec)
 

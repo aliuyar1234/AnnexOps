@@ -247,14 +247,24 @@ export default function SystemDetailPage() {
               / <span className="font-mono">{systemId}</span>
             </div>
           </div>
-          {system && canEdit ? (
-            <button
-              type="button"
-              onClick={() => setIsEditing((v) => !v)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
-            >
-              {isEditing ? "Cancel" : "Edit"}
-            </button>
+          {system ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/systems/${systemId}/high-risk-assessment`}
+                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
+              >
+                High-risk assessment
+              </Link>
+              {canEdit ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing((v) => !v)}
+                  className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50"
+                >
+                  {isEditing ? "Cancel" : "Edit"}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

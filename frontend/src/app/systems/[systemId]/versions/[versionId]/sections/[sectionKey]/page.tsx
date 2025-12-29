@@ -12,11 +12,13 @@ import type {
   EvidenceResponse,
   GapSuggestionResponse,
   MappingWithEvidence,
+  SectionCommentListResponse,
+  SectionCommentResponse,
   SectionResponse,
 } from "@/lib/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 type EditorMode = "form" | "json";
 type MappingStrength = "" | "weak" | "medium" | "strong";
@@ -114,6 +116,7 @@ export default function SectionEditorPage() {
 
   const { accessToken, user } = useAuth();
   const canEdit = hasAtLeast(user?.role, "editor");
+  const canComment = hasAtLeast(user?.role, "reviewer");
 
   const [mode, setMode] = useState<EditorMode>("form");
   const [section, setSection] = useState<SectionResponse | null>(null);
@@ -124,12 +127,24 @@ export default function SectionEditorPage() {
 
   const [mappings, setMappings] = useState<MappingWithEvidence[]>([]);
 
+  const [comments, setComments] = useState<SectionCommentResponse[]>([]);
+  const [commentsTotal, setCommentsTotal] = useState(0);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [isAddingComment, setIsAddingComment] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [lastSavedUpdatedAt, setLastSavedUpdatedAt] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<{
+    currentUpdatedAt: string;
+    currentLastEditedBy: string | null;
+  } | null>(null);
 
   const evidenceRefs = useMemo(() => mappings.map((m) => m.evidence_id), [mappings]);
 
@@ -184,6 +199,11 @@ export default function SectionEditorPage() {
 
       setSection(sectionData);
       setMappings(mappingData);
+      setLastSavedUpdatedAt(sectionData.updated_at);
+      setIsDirty(false);
+      setConflict(null);
+      setSaveError(null);
+      setSaveSuccess(null);
 
       const sectionInfo = completenessData.sections.find((s) => s.section_key === sectionKey);
       const fields = sectionInfo ? Object.keys(sectionInfo.field_completion) : [];
@@ -200,10 +220,101 @@ export default function SectionEditorPage() {
     }
   }
 
+  async function refreshMappings() {
+    if (!accessToken) return;
+
+    try {
+      const params = new URLSearchParams();
+      params.set("target_type", "section");
+      params.set("target_key", sectionKey);
+      params.set("limit", "100");
+      params.set("offset", "0");
+
+      const [completenessData, mappingData] = await Promise.all([
+        apiRequest<CompletenessResponse>(
+          `/api/systems/${systemId}/versions/${versionId}/completeness`,
+          {},
+          { accessToken },
+        ),
+        apiRequest<MappingWithEvidence[]>(
+          `/api/systems/${systemId}/versions/${versionId}/evidence?${params.toString()}`,
+          {},
+          { accessToken },
+        ),
+      ]);
+
+      setMappings(mappingData);
+      const sectionInfo = completenessData.sections.find((s) => s.section_key === sectionKey);
+      const fields = sectionInfo ? Object.keys(sectionInfo.field_completion) : [];
+      fields.sort((a, b) => a.localeCompare(b));
+      setRequiredFields(fields);
+    } catch (err) {
+      setMappingError(err instanceof ApiError ? "Failed to refresh mappings." : "Unexpected error.");
+    }
+  }
+
   useEffect(() => {
     void refreshAll();
+    void refreshComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, systemId, versionId, sectionKey]);
+
+  async function refreshComments() {
+    if (!accessToken) return;
+    setCommentsError(null);
+
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "50");
+      params.set("offset", "0");
+
+      const data = await apiRequest<SectionCommentListResponse>(
+        `/api/systems/${systemId}/versions/${versionId}/sections/${encodeURIComponent(
+          sectionKey,
+        )}/comments?${params.toString()}`,
+        {},
+        { accessToken },
+      );
+      setComments(data.items);
+      setCommentsTotal(data.total);
+    } catch (err) {
+      setCommentsError(err instanceof ApiError ? "Failed to load comments." : "Unexpected error.");
+    }
+  }
+
+  async function onAddComment(e: FormEvent) {
+    e.preventDefault();
+    setCommentsError(null);
+
+    if (!accessToken) return;
+    if (!canComment) {
+      setCommentsError("Reviewer role required to comment.");
+      return;
+    }
+
+    const comment = commentDraft.trim();
+    if (!comment) {
+      setCommentsError("Comment cannot be empty.");
+      return;
+    }
+
+    setIsAddingComment(true);
+    try {
+      await apiRequest<SectionCommentResponse>(
+        `/api/systems/${systemId}/versions/${versionId}/sections/${encodeURIComponent(
+          sectionKey,
+        )}/comments`,
+        { method: "POST", body: JSON.stringify({ comment }) },
+        { accessToken },
+      );
+      setCommentDraft("");
+      await refreshComments();
+    } catch (err) {
+      setCommentsError(err instanceof ApiError ? "Failed to add comment." : "Unexpected error.");
+    } finally {
+      setIsAddingComment(false);
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -248,6 +359,8 @@ export default function SectionEditorPage() {
 
   function updateField(field: string, rawValue: string) {
     setContentDraft((prev) => ({ ...prev, [field]: parseEditorValue(rawValue) }));
+    setIsDirty(true);
+    setSaveSuccess(null);
   }
 
   async function generateDraft() {
@@ -315,60 +428,128 @@ export default function SectionEditorPage() {
     }
   }
 
+  const saveSection = useCallback(
+    async (options: { force?: boolean; silent?: boolean } = {}) => {
+      setSaveError(null);
+      if (!options.silent) setSaveSuccess(null);
+      setJsonError(null);
+
+      if (!accessToken || !section) return;
+      if (!canEdit) {
+        setSaveError("Editor role required to edit sections.");
+        return;
+      }
+
+      let contentToSave: Record<string, unknown> = contentDraft;
+      if (mode === "json") {
+        try {
+          const parsed = JSON.parse(jsonDraft);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            if (!options.silent) setJsonError("JSON must be an object.");
+            return;
+          }
+          contentToSave = parsed as Record<string, unknown>;
+        } catch {
+          if (!options.silent) setJsonError("Invalid JSON.");
+          return;
+        }
+      }
+
+      setIsSaving(true);
+      try {
+        const url =
+          `/api/systems/${systemId}/versions/${versionId}/sections/${encodeURIComponent(sectionKey)}` +
+          (options.force ? "?force=true" : "");
+
+        const payload: Record<string, unknown> = {
+          content: contentToSave,
+          evidence_refs: evidenceRefs,
+        };
+        if (lastSavedUpdatedAt && !options.force) payload.expected_updated_at = lastSavedUpdatedAt;
+
+        const updated = await apiRequest<SectionResponse>(
+          url,
+          {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          },
+          { accessToken },
+        );
+        setSection(updated);
+        setContentDraft(updated.content ?? {});
+        setJsonDraft(JSON.stringify(updated.content ?? {}, null, 2));
+        setLastSavedUpdatedAt(updated.updated_at);
+        setIsDirty(false);
+        setConflict(null);
+        setSaveSuccess(options.silent ? "Autosaved." : "Saved.");
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409) {
+          const detail =
+            typeof err.body === "object" && err.body && "detail" in err.body
+              ? (err.body as { detail?: unknown }).detail
+              : null;
+
+          if (detail && typeof detail === "object" && "reason" in detail && (detail as { reason?: unknown }).reason === "optimistic_concurrency") {
+            const currentUpdatedAt =
+              "current_updated_at" in detail && typeof (detail as { current_updated_at?: unknown }).current_updated_at === "string"
+                ? (detail as { current_updated_at: string }).current_updated_at
+                : "";
+            const currentLastEditedBy =
+              "current_last_edited_by" in detail &&
+              (typeof (detail as { current_last_edited_by?: unknown }).current_last_edited_by === "string" ||
+                (detail as { current_last_edited_by?: unknown }).current_last_edited_by === null)
+                ? ((detail as { current_last_edited_by: string | null }).current_last_edited_by ?? null)
+                : null;
+
+            setConflict({ currentUpdatedAt, currentLastEditedBy });
+            setSaveError("Section changed since you loaded it. Reload or overwrite.");
+          } else {
+            setSaveError("This version is immutable (approved with exports).");
+          }
+        } else {
+          setSaveError(err instanceof ApiError ? "Save failed." : "Unexpected error.");
+        }
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [
+      accessToken,
+      canEdit,
+      contentDraft,
+      evidenceRefs,
+      lastSavedUpdatedAt,
+      mode,
+      jsonDraft,
+      section,
+      sectionKey,
+      systemId,
+      versionId,
+    ],
+  );
+
   async function onSave(e: FormEvent) {
     e.preventDefault();
-    setSaveError(null);
-    setSaveSuccess(null);
-    setJsonError(null);
+    await saveSection();
+  }
 
-    if (!accessToken || !section) return;
-    if (!canEdit) {
-      setSaveError("Editor role required to edit sections.");
-      return;
-    }
-
-    let contentToSave: Record<string, unknown> = contentDraft;
+  useEffect(() => {
+    if (!accessToken || !section || !canEdit) return;
+    if (!isDirty || isSaving || conflict) return;
     if (mode === "json") {
       try {
         const parsed = JSON.parse(jsonDraft);
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          setJsonError("JSON must be an object.");
-          return;
-        }
-        contentToSave = parsed as Record<string, unknown>;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
       } catch {
-        setJsonError("Invalid JSON.");
         return;
       }
     }
 
-    setIsSaving(true);
-    try {
-      const updated = await apiRequest<SectionResponse>(
-        `/api/systems/${systemId}/versions/${versionId}/sections/${encodeURIComponent(sectionKey)}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            content: contentToSave,
-            evidence_refs: evidenceRefs,
-          }),
-        },
-        { accessToken },
-      );
-      setSection(updated);
-      setContentDraft(updated.content ?? {});
-      setJsonDraft(JSON.stringify(updated.content ?? {}, null, 2));
-      setSaveSuccess("Saved.");
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setSaveError("This version is immutable (approved with exports).");
-      } else {
-        setSaveError(err instanceof ApiError ? "Save failed." : "Unexpected error.");
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  }
+    const timer = setTimeout(() => {
+      void saveSection({ silent: true });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [accessToken, canEdit, conflict, isDirty, isSaving, jsonDraft, mode, saveSection, section]);
 
   async function onAddMapping(e: FormEvent) {
     e.preventDefault();
@@ -406,7 +587,9 @@ export default function SectionEditorPage() {
       setEvidenceResults([]);
       setMappingStrength("medium");
       setMappingNotes("");
-      await refreshAll();
+      await refreshMappings();
+      setIsDirty(true);
+      setSaveSuccess(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setMappingError("Mapping already exists.");
@@ -432,7 +615,9 @@ export default function SectionEditorPage() {
         { method: "DELETE" },
         { accessToken },
       );
-      await refreshAll();
+      await refreshMappings();
+      setIsDirty(true);
+      setSaveSuccess(null);
     } catch (err) {
       setMappingError(err instanceof ApiError ? "Failed to delete mapping." : "Unexpected error.");
     }
@@ -513,6 +698,39 @@ export default function SectionEditorPage() {
                       {saveSuccess}
                     </div>
                   ) : null}
+                  {conflict ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                      <div className="text-sm font-medium">Concurrent update detected</div>
+                      <div className="mt-1 text-xs text-amber-800/80">
+                        Someone else updated this section at{" "}
+                        <span className="font-mono">{conflict.currentUpdatedAt || "unknown time"}</span>
+                        {conflict.currentLastEditedBy ? (
+                          <>
+                            {" "}
+                            (editor <span className="font-mono">{conflict.currentLastEditedBy}</span>)
+                          </>
+                        ) : null}
+                        .
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void refreshAll()}
+                          className="rounded-md border border-amber-200 bg-white px-3 py-2 text-xs hover:bg-amber-50"
+                        >
+                          Reload latest
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          onClick={() => void saveSection({ force: true })}
+                          className="rounded-md bg-amber-700 px-3 py-2 text-xs font-medium text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Overwrite anyway
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {mode === "form" ? (
                     <div className="space-y-4">
@@ -540,7 +758,11 @@ export default function SectionEditorPage() {
                       <label className="text-xs font-medium">Content JSON</label>
                       <textarea
                         value={jsonDraft}
-                        onChange={(e) => setJsonDraft(e.target.value)}
+                        onChange={(e) => {
+                          setJsonDraft(e.target.value);
+                          setIsDirty(true);
+                          setSaveSuccess(null);
+                        }}
                         rows={18}
                         disabled={!canEdit}
                         className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 font-mono text-xs outline-none focus:border-zinc-400 disabled:bg-zinc-50"
@@ -549,20 +771,94 @@ export default function SectionEditorPage() {
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={!canEdit || isSaving}
-                    className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSaving ? "Saving…" : "Save section"}
-                  </button>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-xs text-zinc-500">
+                      {conflict
+                        ? "Autosave paused until conflict is resolved."
+                        : isSaving
+                          ? "Saving…"
+                          : isDirty
+                            ? "Unsaved changes (autosave enabled)."
+                            : lastSavedUpdatedAt
+                              ? `Saved at ${new Date(lastSavedUpdatedAt).toLocaleString()}`
+                              : null}
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!canEdit || isSaving}
+                      className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSaving ? "Saving…" : "Save section"}
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
 
             <div className="space-y-6">
               <div className="rounded-xl border border-zinc-200 bg-white p-6">
-                <h2 className="text-sm font-medium">Evidence mappings</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-medium">Review</h2>
+                  <Link
+                    href={`/systems/${systemId}/versions/${versionId}/decision-logs`}
+                    className="text-xs text-zinc-600 underline hover:text-zinc-800"
+                  >
+                    Decision logs
+                  </Link>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Comments are visible to everyone with access to this version.
+                </p>
+
+                {commentsError ? (
+                  <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {commentsError}
+                  </div>
+                ) : null}
+
+                {comments.length === 0 ? (
+                  <div className="mt-4 text-sm text-zinc-600">No comments yet.</div>
+                ) : (
+                  <ul className="mt-4 space-y-2">
+                    {comments.map((c) => (
+                      <li key={c.id} className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                        <div className="text-xs text-zinc-500">
+                          {c.author ? c.author.email : "unknown"} ·{" "}
+                          <span className="font-mono">{c.created_at}</span>
+                        </div>
+                        <div className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">{c.comment}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <form className="mt-6 space-y-3" onSubmit={onAddComment}>
+                  <h3 className="text-sm font-medium">Add comment</h3>
+                  <textarea
+                    value={commentDraft}
+                    onChange={(e) => setCommentDraft(e.target.value)}
+                    rows={3}
+                    disabled={!canComment}
+                    className="mt-1 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-400 disabled:bg-zinc-50"
+                    placeholder={canComment ? "Write a review comment…" : "Reviewer role required to comment."}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!canComment || isAddingComment}
+                    className="w-full rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isAddingComment ? "Adding…" : "Add comment"}
+                  </button>
+                  {commentsTotal > 0 ? (
+                    <div className="text-xs text-zinc-500">
+                      total: <span className="font-mono">{commentsTotal}</span>
+                    </div>
+                  ) : null}
+                </form>
+              </div>
+
+              <div className="rounded-xl border border-zinc-200 bg-white p-6">  
+                <h2 className="text-sm font-medium">Evidence mappings</h2>      
                 <p className="mt-1 text-xs text-zinc-500">
                   Export evidence index is derived from mappings.
                 </p>

@@ -92,6 +92,8 @@ async def test_update_content_updates_section_and_recalculates_score(
             "identified_risks": ["Risk 1", "Risk 2"],
         },
         evidence_refs=None,
+        expected_updated_at=None,
+        force=False,
         current_user=test_editor_user,
     )
 
@@ -124,6 +126,8 @@ async def test_update_content_updates_evidence_refs(
         section_key="ANNEX4.DATA_GOVERNANCE",
         content=None,  # Don't update content
         evidence_refs=[evidence_id_1, evidence_id_2],
+        expected_updated_at=None,
+        force=False,
         current_user=test_editor_user,
     )
 
@@ -188,6 +192,8 @@ async def test_section_crud_flow(
             "risk_mitigation_measures": ["Mitigation 1"],
         },
         evidence_refs=[evidence_id],
+        expected_updated_at=None,
+        force=False,
         current_user=test_editor_user,
     )
 

@@ -28,6 +28,38 @@ async function sha256Hex(file: File): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** idx;
+  return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+async function uploadWithProgress(
+  url: string,
+  file: File,
+  mimeType: string,
+  onProgress: (percent: number) => void,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+    xhr.setRequestHeader("Content-Type", mimeType);
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const percent = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      onProgress(percent);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Upload failed"));
+    xhr.send(file);
+  });
+}
+
 export default function EvidencePage() {
   const { accessToken, user } = useAuth();
   const canCreate = hasAtLeast(user?.role, "editor");
@@ -51,6 +83,12 @@ export default function EvidencePage() {
     useState<Classification>("internal");
 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadChecksum, setUploadChecksum] = useState<string | null>(null);
+  const [uploadChecksumError, setUploadChecksumError] = useState<string | null>(null);
+  const [isComputingChecksum, setIsComputingChecksum] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
+  const [uploadPreviewText, setUploadPreviewText] = useState<string | null>(null);
   const [urlValue, setUrlValue] = useState("");
   const [urlAccessedAt, setUrlAccessedAt] = useState("");
 
@@ -115,6 +153,60 @@ export default function EvidencePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, limit, offset, search, typeFilter, classificationFilter, orphanedFilter]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let previewUrl: string | null = null;
+
+    setUploadProgress(null);
+    setUploadChecksum(null);
+    setUploadChecksumError(null);
+    setUploadPreviewText(null);
+    setIsComputingChecksum(false);
+
+    if (!uploadFile) {
+      setUploadPreviewUrl(null);
+      return () => {};
+    }
+
+    if (uploadFile.type.startsWith("image/")) {
+      previewUrl = URL.createObjectURL(uploadFile);
+      setUploadPreviewUrl(previewUrl);
+    } else {
+      setUploadPreviewUrl(null);
+    }
+
+    if (
+      uploadFile.size <= 256 * 1024 &&
+      (uploadFile.type.startsWith("text/") || uploadFile.type === "application/json")
+    ) {
+      uploadFile
+        .text()
+        .then((text) => {
+          if (!cancelled) setUploadPreviewText(text.slice(0, 4096));
+        })
+        .catch(() => {
+          // ignore preview errors
+        });
+    }
+
+    (async () => {
+      setIsComputingChecksum(true);
+      try {
+        const checksum = await sha256Hex(uploadFile);
+        if (!cancelled) setUploadChecksum(checksum);
+      } catch {
+        if (!cancelled) setUploadChecksumError("Failed to compute SHA-256.");
+      } finally {
+        if (!cancelled) setIsComputingChecksum(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [uploadFile]);
+
   async function onCreate(e: FormEvent) {
     e.preventDefault();
     setCreateError(null);
@@ -145,7 +237,7 @@ export default function EvidencePage() {
         const filename = uploadFile.name;
         const mimeType = uploadFile.type || "application/octet-stream";
         const fileSize = uploadFile.size;
-        const checksum = await sha256Hex(uploadFile);
+        const checksum = uploadChecksum ?? (await sha256Hex(uploadFile));
 
         const uploadInfo = await apiRequest<{
           upload_url: string;
@@ -160,14 +252,9 @@ export default function EvidencePage() {
           { accessToken },
         );
 
-        const putRes = await fetch(uploadInfo.upload_url, {
-          method: "PUT",
-          body: uploadFile,
-          headers: { "Content-Type": mimeType },
-        });
-        if (!putRes.ok) {
-          throw new Error(`Upload failed (${putRes.status})`);
-        }
+        setUploadProgress(0);
+        await uploadWithProgress(uploadInfo.upload_url, uploadFile, mimeType, setUploadProgress);
+        setUploadProgress(100);
 
         await apiRequest<EvidenceResponse>(
           "/api/evidence",
@@ -501,8 +588,58 @@ export default function EvidencePage() {
                         className="mt-1 w-full text-sm"
                       />
                       <p className="mt-1 text-xs text-zinc-500">
-                        Client computes SHA‑256 and uploads via presigned URL.
+                        Client computes SHA-256 and uploads via a presigned URL.
                       </p>
+                      {uploadFile ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="text-xs text-zinc-600">
+                            <span className="font-mono">{uploadFile.name}</span> · {formatBytes(uploadFile.size)} ·{" "}
+                            <span className="font-mono">{uploadFile.type || "application/octet-stream"}</span>
+                          </div>
+                          <div className="text-xs text-zinc-600">
+                            SHA-256:{" "}
+                            <span className="font-mono">
+                              {uploadChecksumError
+                                ? "error"
+                                : isComputingChecksum
+                                  ? "computing…"
+                                  : uploadChecksum ?? "—"}
+                            </span>
+                          </div>
+                          {uploadChecksumError ? (
+                            <div className="text-xs text-red-700">{uploadChecksumError}</div>
+                          ) : null}
+                          {uploadProgress !== null ? (
+                            <div>
+                              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                                <span>Upload</span>
+                                <span className="font-mono">{uploadProgress}%</span>
+                              </div>
+                              <div className="mt-1 h-2 w-full overflow-hidden rounded bg-zinc-100">
+                                <div
+                                  className="h-full bg-zinc-900 transition-[width]"
+                                  style={{ width: `${uploadProgress}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+                          {uploadPreviewUrl ? (
+                            <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={uploadPreviewUrl}
+                                alt="Selected file preview"
+                                className="max-h-48 w-full object-contain"
+                              />
+                            </div>
+                          ) : null}
+                          {uploadPreviewText ? (
+                            <pre className="max-h-48 overflow-auto rounded-md border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-700">
+                              <code>{uploadPreviewText}</code>
+                            </pre>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 

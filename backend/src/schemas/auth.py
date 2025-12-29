@@ -15,8 +15,10 @@ class LoginRequest(BaseModel):
     Used for POST /auth/login endpoint.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=8, description="User password")
+    password: str = Field(..., min_length=8, max_length=512, description="User password")
 
 
 class TokenResponse(BaseModel):

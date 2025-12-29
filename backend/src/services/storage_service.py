@@ -1,10 +1,14 @@
 """Storage service for evidence file management with presigned URLs."""
 
 import hashlib
+import re
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from src.core.storage import get_storage_client
+
+
+_EXTENSION_SANITIZE_RE = re.compile(r"[^a-z0-9]+")
 
 
 class StorageService:
@@ -40,6 +44,7 @@ class StorageService:
         extension = "bin"
         if "." in filename:
             extension = filename.rsplit(".", 1)[1].lower()
+        extension = _EXTENSION_SANITIZE_RE.sub("", extension)[:16] or "bin"
 
         storage_uri = f"evidence/{org_id}/{now.year}/{now.month:02d}/{file_id}.{extension}"
         return storage_uri, extension

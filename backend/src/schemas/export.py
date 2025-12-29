@@ -4,11 +4,13 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CreateExportRequest(BaseModel):
     """Request schema for creating an export."""
+
+    model_config = ConfigDict(extra="forbid")
 
     include_diff: bool = Field(
         default=False, description="Whether to include diff compared to another version"
@@ -16,6 +18,14 @@ class CreateExportRequest(BaseModel):
     compare_version_id: UUID | None = Field(
         default=None, description="Version ID to compare against (required if include_diff=true)"
     )
+
+    @model_validator(mode="after")
+    def validate_diff_request(self) -> "CreateExportRequest":
+        if self.include_diff and not self.compare_version_id:
+            raise ValueError("compare_version_id is required when include_diff=true")
+        if not self.include_diff and self.compare_version_id is not None:
+            raise ValueError("compare_version_id must be omitted when include_diff=false")
+        return self
 
 
 class ExportResponse(BaseModel):

@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,9 +25,49 @@ class Settings(BaseSettings):
 
     # Security
     bcrypt_rounds: int = 12
-    environment: Literal["development", "production"] = "development"
+    environment: Literal["development", "production"] = "development"      
     api_docs_enabled: bool | None = None
     bootstrap_token: str | None = None
+
+    # CORS
+    cors_allow_origins: list[str] = ["http://localhost:3000"]
+    cors_allow_methods: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    cors_allow_headers: list[str] = [
+        "Accept",
+        "Authorization",
+        "Content-Type",
+        "X-Request-ID",
+        "X-Bootstrap-Token",
+        "X-API-Key",
+        "X-Metrics-Token",
+    ]
+    cors_allow_credentials: bool = True
+
+    # Session cookie (refresh token)
+    refresh_cookie_name: str = "refresh_token"
+    refresh_cookie_path: str = "/api/auth/refresh"
+    refresh_cookie_domain: str | None = None
+    refresh_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    refresh_cookie_secure: bool | None = None
+
+    # Rate limiting (production-only safeguard)
+    rate_limit_write_per_minute: int = 120
+    rate_limit_refresh_per_minute: int = 60
+    rate_limit_accept_invite_per_hour: int = 20
+
+    @field_validator(
+        "cors_allow_origins",
+        "cors_allow_methods",
+        "cors_allow_headers",
+        mode="before",
+    )
+    @classmethod
+    def _parse_csv_lists(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
 
     # Email (for invitations)
     smtp_host: str = "localhost"
@@ -69,6 +109,18 @@ class Settings(BaseSettings):
 
         if self.minio_access_key == "minioadmin" or self.minio_secret_key == "minioadmin":
             raise ValueError("MINIO_ACCESS_KEY/MINIO_SECRET_KEY must be set in production")
+
+        if any(x == "*" for x in self.cors_allow_origins):
+            raise ValueError("CORS_ALLOW_ORIGINS cannot contain '*' in production")
+        if any(x == "*" for x in self.cors_allow_methods):
+            raise ValueError("CORS_ALLOW_METHODS cannot contain '*' in production")
+        if any(x == "*" for x in self.cors_allow_headers):
+            raise ValueError("CORS_ALLOW_HEADERS cannot contain '*' in production")
+
+        if self.refresh_cookie_samesite == "none":
+            secure = True if self.refresh_cookie_secure is None else bool(self.refresh_cookie_secure)
+            if not secure:
+                raise ValueError("REFRESH_COOKIE_SECURE must be true when REFRESH_COOKIE_SAMESITE=none")
 
         return self
 

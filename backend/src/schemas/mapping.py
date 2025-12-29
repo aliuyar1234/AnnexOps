@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models.enums import MappingStrength, MappingTargetType
 from src.schemas.evidence import EvidenceResponse
@@ -11,6 +11,8 @@ from src.schemas.evidence import EvidenceResponse
 
 class CreateMappingRequest(BaseModel):
     """Request schema for creating an evidence mapping."""
+
+    model_config = ConfigDict(extra="forbid")
 
     evidence_id: UUID = Field(..., description="Evidence item to map")
     target_type: MappingTargetType = Field(
@@ -22,7 +24,23 @@ class CreateMappingRequest(BaseModel):
     strength: MappingStrength | None = Field(
         None, description="Mapping strength (weak/medium/strong)"
     )
-    notes: str | None = Field(None, description="Mapping rationale and notes")
+    notes: str | None = Field(None, max_length=5000, description="Mapping rationale and notes")
+
+    @field_validator("target_key")
+    @classmethod
+    def strip_target_key(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("target_key cannot be empty")
+        return v
+
+    @field_validator("notes")
+    @classmethod
+    def strip_notes(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class MappingResponse(BaseModel):

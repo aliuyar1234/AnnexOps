@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import require_role
@@ -14,7 +14,14 @@ from src.schemas.section import (
     SectionResponse,
     UpdateSectionRequest,
 )
+from src.schemas.section_comment import (
+    CommentAuthor,
+    CreateSectionCommentRequest,
+    SectionCommentListResponse,
+    SectionCommentResponse,
+)
 from src.services.completeness_service import SECTION_TITLES
+from src.services.section_comment_service import SectionCommentService
 from src.services.section_service import SectionService
 
 router = APIRouter()
@@ -33,6 +40,22 @@ def _section_to_response(section) -> SectionResponse:
         llm_assisted=section.llm_assisted,
         last_edited_by=section.last_edited_by,
         updated_at=section.updated_at,
+    )
+
+
+def _comment_to_response(comment) -> SectionCommentResponse:
+    author = (
+        CommentAuthor(id=comment.author.id, email=comment.author.email)
+        if getattr(comment, "author", None)
+        else None
+    )
+    return SectionCommentResponse(
+        id=comment.id,
+        version_id=comment.version_id,
+        section_key=comment.section_key,
+        comment=comment.comment,
+        author=author,
+        created_at=comment.created_at,
     )
 
 
@@ -83,7 +106,7 @@ async def list_sections(
 async def get_section(
     system_id: UUID,
     version_id: UUID,
-    section_key: str,
+    section_key: str = Path(..., min_length=1, max_length=100, pattern=r"^[A-Z0-9._-]+$"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.VIEWER)),
 ) -> SectionResponse:
@@ -129,8 +152,12 @@ async def get_section(
 async def update_section(
     system_id: UUID,
     version_id: UUID,
-    section_key: str,
     request: UpdateSectionRequest,
+    section_key: str = Path(..., min_length=1, max_length=100, pattern=r"^[A-Z0-9._-]+$"),
+    force: bool = Query(
+        False,
+        description="If true, overwrite even if the section has changed since it was last loaded.",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.EDITOR)),
 ) -> SectionResponse:
@@ -158,9 +185,66 @@ async def update_section(
         section_key=section_key,
         content=request.content,
         evidence_refs=request.evidence_refs,
+        expected_updated_at=request.expected_updated_at,
+        force=force,
         current_user=current_user,
     )
 
     await db.commit()
 
     return _section_to_response(section)
+
+
+@router.get(
+    "/{system_id}/versions/{version_id}/sections/{section_key}/comments",
+    response_model=SectionCommentListResponse,
+    summary="List section review comments",
+)
+async def list_section_comments(
+    system_id: UUID,
+    version_id: UUID,
+    section_key: str = Path(..., min_length=1, max_length=100, pattern=r"^[A-Z0-9._-]+$"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.VIEWER)),
+) -> SectionCommentListResponse:
+    service = SectionCommentService(db)
+    comments, total = await service.list(
+        version_id=version_id,
+        section_key=section_key,
+        org_id=current_user.org_id,
+        limit=limit,
+        offset=offset,
+    )
+    return SectionCommentListResponse(
+        items=[_comment_to_response(c) for c in comments],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post(
+    "/{system_id}/versions/{version_id}/sections/{section_key}/comments",
+    response_model=SectionCommentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create section review comment",
+)
+async def create_section_comment(
+    system_id: UUID,
+    version_id: UUID,
+    request: CreateSectionCommentRequest,
+    section_key: str = Path(..., min_length=1, max_length=100, pattern=r"^[A-Z0-9._-]+$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.REVIEWER)),
+) -> SectionCommentResponse:
+    service = SectionCommentService(db)
+    comment = await service.create(
+        version_id=version_id,
+        section_key=section_key,
+        comment=request.comment,
+        current_user=current_user,
+    )
+    await db.commit()
+    return _comment_to_response(comment)

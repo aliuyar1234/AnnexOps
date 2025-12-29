@@ -1,8 +1,11 @@
 """Evidence service for managing evidence items."""
 
+from __future__ import annotations
+
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -65,6 +68,68 @@ class EvidenceService:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                 detail=f"File type '{mime_type}' is not allowed",
+            )
+
+    def _validate_upload_storage_uri(self, storage_uri: str, org_id: UUID) -> None:
+        """Validate that a user-supplied storage URI is safe and org-scoped."""
+        if not storage_uri or not isinstance(storage_uri, str):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri is required",
+            )
+        if len(storage_uri) > 500:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri is too long",
+            )
+        if storage_uri.startswith("/") or "\\" in storage_uri:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri is invalid",
+            )
+
+        parts = storage_uri.split("/")
+        if len(parts) != 5 or parts[0] != "evidence" or parts[1] != str(org_id):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri is invalid for this organization",
+            )
+
+        year, month, filename = parts[2], parts[3], parts[4]
+        if not (year.isdigit() and len(year) == 4):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri has an invalid year segment",
+            )
+        if not month.isdigit():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri has an invalid month segment",
+            )
+        month_int = int(month)
+        if month_int < 1 or month_int > 12:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri has an invalid month segment",
+            )
+
+        if "." not in filename:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri has an invalid filename segment",
+            )
+        file_id, ext = filename.rsplit(".", 1)
+        try:
+            UUID(file_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri has an invalid filename segment",
+            ) from None
+        if not ext.isalnum() or len(ext) > 16:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="storage_uri has an invalid file extension",
             )
 
     def _validate_url_metadata(self, type_metadata: dict) -> None:
@@ -138,6 +203,12 @@ class EvidenceService:
         """
         # Validate type-specific metadata
         if request.type == EvidenceType.UPLOAD:
+            storage_uri = request.type_metadata.get("storage_uri")
+            if storage_uri is not None:
+                self._validate_upload_storage_uri(
+                    str(storage_uri),
+                    current_user.org_id,
+                )
             self._validate_file_upload_metadata(request.type_metadata)
         elif request.type == EvidenceType.URL:
             self._validate_url_metadata(request.type_metadata)
@@ -433,6 +504,23 @@ class EvidenceService:
                     from src.schemas.evidence import UploadMetadata
 
                     UploadMetadata(**updates["type_metadata"])
+                    existing = evidence.type_metadata or {}
+                    incoming = updates["type_metadata"]
+                    if incoming.get("storage_uri") != existing.get("storage_uri"):
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="storage_uri cannot be changed",
+                        )
+                    for key in ("checksum_sha256", "file_size", "mime_type"):
+                        if incoming.get(key) != existing.get(key):
+                            raise HTTPException(
+                                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"{key} cannot be changed",
+                            )
+                    self._validate_upload_storage_uri(
+                        str(incoming.get("storage_uri", "")),
+                        current_user.org_id,
+                    )
                 elif evidence.type == EvidenceType.URL:
                     from src.schemas.evidence import UrlMetadata
 
@@ -460,11 +548,16 @@ class EvidenceService:
                     detail=f"type_metadata validation failed: {'; '.join(error_msgs)}",
                 ) from None
 
-        # Filter out None values and only update provided fields
-        filtered_updates = {k: v for k, v in updates.items() if v is not None}
+        # Reject explicit nulls for non-nullable fields.
+        for field in ("title", "tags", "classification", "type_metadata"):
+            if field in updates and updates[field] is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"{field} cannot be null",
+                )
 
         # Update fields
-        for key, value in filtered_updates.items():
+        for key, value in updates.items():
             if hasattr(evidence, key):
                 setattr(evidence, key, value)
 
@@ -477,7 +570,7 @@ class EvidenceService:
             action=AuditAction.EVIDENCE_UPDATE,
             entity_type="evidence_item",
             entity_id=evidence.id,
-            diff_json=filtered_updates,
+            diff_json=jsonable_encoder(updates),
         )
 
         await self.db.refresh(evidence)
@@ -552,7 +645,8 @@ class EvidenceService:
 
                 storage_service = get_storage_service()
                 try:
-                    storage_service.delete_file(storage_uri)
+                    self._validate_upload_storage_uri(str(storage_uri), current_user.org_id)
+                    storage_service.delete_file(str(storage_uri))
                 except Exception:
                     # Log but don't fail the deletion if storage deletion fails
                     pass

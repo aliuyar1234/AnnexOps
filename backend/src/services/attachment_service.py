@@ -1,6 +1,7 @@
 """Attachment service for file upload/download operations."""
 
 import os
+import re
 import uuid
 from uuid import UUID
 
@@ -29,6 +30,8 @@ ALLOWED_MIME_TYPES = {
     "text/plain",
     "text/markdown",
 }
+
+_EXTENSION_SANITIZE_RE = re.compile(r"[^a-z0-9]+")
 
 
 class AttachmentService:
@@ -82,7 +85,8 @@ class AttachmentService:
             File extension without dot
         """
         if "." in filename:
-            return filename.rsplit(".", 1)[1].lower()
+            extension = filename.rsplit(".", 1)[1].lower()
+            return _EXTENSION_SANITIZE_RE.sub("", extension)[:16] or "bin"
         return "bin"
 
     async def upload(
@@ -112,6 +116,28 @@ class AttachmentService:
         """
         # Verify system exists
         await self.get_system(system_id, current_user.org_id)
+
+        title = (title or "").strip()
+        if not title:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="title is required",
+            )
+        if len(title) > 255:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="title must be <= 255 characters",
+            )
+
+        if description is not None:
+            description = description.strip()
+            if not description:
+                description = None
+            elif len(description) > 5000:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="description must be <= 5000 characters",
+                )
 
         # Validate file size without reading into memory
         try:

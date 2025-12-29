@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.models.enums import DecisionInfluence, DeploymentType, HRUseCaseType
 
@@ -21,23 +21,43 @@ class UserSummary(BaseModel):
 class CreateSystemRequest(BaseModel):
     """Request schema for creating an AI system."""
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     hr_use_case_type: HRUseCaseType
-    intended_purpose: str = Field(..., min_length=1)
+    intended_purpose: str = Field(..., min_length=1, max_length=5000)
     deployment_type: DeploymentType
     decision_influence: DecisionInfluence
     contact_name: str | None = Field(None, max_length=255)
     contact_email: EmailStr | None = None
 
+    @field_validator("name", "intended_purpose")
+    @classmethod
+    def strip_required_text(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("value cannot be empty")
+        return v
+
+    @field_validator("description", "contact_name")
+    @classmethod
+    def strip_optional_text(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
 
 class UpdateSystemRequest(BaseModel):
     """Request schema for updating an AI system."""
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = Field(None, min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     hr_use_case_type: HRUseCaseType | None = None
-    intended_purpose: str | None = Field(None, min_length=1)
+    intended_purpose: str | None = Field(None, min_length=1, max_length=5000)
     deployment_type: DeploymentType | None = None
     decision_influence: DecisionInfluence | None = None
     contact_name: str | None = Field(None, max_length=255)
@@ -46,6 +66,24 @@ class UpdateSystemRequest(BaseModel):
         None,
         description="For optimistic locking - must match current version",
     )
+
+    @field_validator("name", "intended_purpose")
+    @classmethod
+    def strip_optional_required_text(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            raise ValueError("value cannot be empty")
+        return v
+
+    @field_validator("description", "contact_name")
+    @classmethod
+    def strip_optional_text(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class SystemResponse(BaseModel):

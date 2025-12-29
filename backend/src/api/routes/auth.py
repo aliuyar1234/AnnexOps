@@ -75,13 +75,21 @@ async def login(
         email=login_data.email, password=login_data.password, ip_address=client_ip
     )
 
+    cookie_secure = (
+        settings.refresh_cookie_secure
+        if settings.refresh_cookie_secure is not None
+        else settings.environment == "production"
+    )
+
     # Set refresh token as httpOnly cookie for security
     response.set_cookie(
-        key="refresh_token",
+        key=settings.refresh_cookie_name,
         value=refresh_token,
         httponly=True,
-        secure=settings.environment == "production",  # HTTPS only in production
-        samesite="lax",  # CSRF protection
+        secure=cookie_secure,
+        samesite=settings.refresh_cookie_samesite,
+        path=settings.refresh_cookie_path,
+        domain=settings.refresh_cookie_domain,
         max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,  # 7 days in seconds
     )
 
@@ -126,10 +134,14 @@ async def logout(
 
     # Clear refresh token cookie
     response.delete_cookie(
-        key="refresh_token",
+        key=settings.refresh_cookie_name,
         httponly=True,
-        secure=settings.environment == "production",
-        samesite="lax",
+        secure=settings.refresh_cookie_secure
+        if settings.refresh_cookie_secure is not None
+        else settings.environment == "production",
+        samesite=settings.refresh_cookie_samesite,
+        path=settings.refresh_cookie_path,
+        domain=settings.refresh_cookie_domain,
     )
 
     # Commit transaction
@@ -140,7 +152,8 @@ async def logout(
 
 @router.post("/refresh", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(
-    refresh_token: str | None = Cookie(None), db: AsyncSession = Depends(get_db)
+    refresh_token: str | None = Cookie(None, alias=settings.refresh_cookie_name),
+    db: AsyncSession = Depends(get_db),
 ):
     """Refresh access token endpoint.
 

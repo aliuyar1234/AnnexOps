@@ -26,13 +26,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
 
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        path = request.url.path
+
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")        
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         response.headers.setdefault(
             "Permissions-Policy",
             "camera=(), microphone=(), geolocation=()",
         )
+
+        # Avoid breaking Swagger UI / ReDoc with overly strict CSP.
+        if not (path.startswith("/api/docs") or path.startswith("/api/redoc")):
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+            )
 
         if settings.environment == "production":
             forwarded_proto = request.headers.get("x-forwarded-proto")
@@ -53,6 +62,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     - Login endpoint: 10 attempts per minute per IP
     - Invitation endpoint: 5 per hour per user
     - Password reset: 3 per hour per email (not yet implemented)
+    - Refresh endpoint: configurable per minute per user/IP
+    - Accept-invite endpoint: configurable per hour per IP
+    - Generic write endpoints: configurable per minute per user/IP
     """
 
     def __init__(self, app: ASGIApp):
@@ -97,6 +109,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         client_ip = request.client.host if request.client else "unknown"
 
+        # Exempt logging ingest (has dedicated limit + API key auth)
+        if path == "/api/v1/logs":
+            return await call_next(request)
+
         # Login endpoint: 10 per minute per IP
         if path == "/api/auth/login":
             count = self._get_request_count("login", client_ip, timedelta(minutes=1))
@@ -118,6 +134,35 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 )
             self._add_request("invite", identifier)
 
+        # Refresh endpoint: per user/IP
+        elif path == "/api/auth/refresh":
+            identifier = self._user_or_ip_identifier(request)
+            count = self._get_request_count(
+                "refresh",
+                identifier,
+                timedelta(minutes=1),
+            )
+            if count >= int(settings.rate_limit_refresh_per_minute):
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many refresh requests. Please try again later.",
+                )
+            self._add_request("refresh", identifier)
+
+        # Accept-invite endpoint: per IP (unauthenticated)
+        elif path == "/api/auth/accept-invite":
+            count = self._get_request_count(
+                "accept_invite",
+                client_ip,
+                timedelta(hours=1),
+            )
+            if count >= int(settings.rate_limit_accept_invite_per_hour):
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many invitation acceptance attempts. Please try again later.",
+                )
+            self._add_request("accept_invite", client_ip)
+
         # LLM endpoints: limit to reduce abuse/cost (per user/IP)
         elif path.startswith("/api/llm/"):
             identifier = self._user_or_ip_identifier(request)
@@ -128,6 +173,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     detail="Too many LLM requests. Please try again later.",
                 )
             self._add_request("llm", identifier)
+
+        # Generic write limiter (POST/PUT/PATCH/DELETE) as production-only safeguard
+        elif request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            identifier = self._user_or_ip_identifier(request)
+            count = self._get_request_count("write", identifier, timedelta(minutes=1))
+            if count >= int(settings.rate_limit_write_per_minute):
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many write requests. Please try again later.",
+                )
+            self._add_request("write", identifier)
 
         response = await call_next(request)
         return response
