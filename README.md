@@ -121,6 +121,10 @@ AnnexOps/
   - CompletenessReport.json
   - DiffReport.json (for version comparisons)
 
+## Roadmap
+
+See `ROADMAP.md` for the open-source v1+ task list.
+
 ## API Endpoints
 
 ### Auth
