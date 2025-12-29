@@ -56,6 +56,14 @@ Once running, visit:
 - Swagger UI: http://localhost:8000/api/docs
 - ReDoc: http://localhost:8000/api/redoc
 
+### Frontend (Next.js)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ### Bootstrap (First Organization)
 
 Creating the first organization requires a bootstrap token:
