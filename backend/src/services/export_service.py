@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import zipfile
+from html import escape as html_escape
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -19,6 +20,8 @@ from src.models.annex_section import AnnexSection
 from src.models.enums import AuditAction
 from src.models.evidence_mapping import EvidenceMapping
 from src.models.export import Export
+from src.models.high_risk_assessment import HighRiskAssessment
+from src.models.organization import Organization
 from src.models.system_version import SystemVersion
 from src.models.user import User
 from src.services.audit_service import AuditService
@@ -230,12 +233,37 @@ class ExportService:
         evidence_items = sorted(evidence_map.values(), key=lambda e: str(e.id))
 
         # Get completeness report
-        completeness = await get_completeness_report(self.db, version_id)
+        completeness = await get_completeness_report(self.db, version_id) 
 
-        # Generate snapshot hash
+        # Load org + optional assessment for canonical manifest (SSOT)
+        org_result = await self.db.execute(select(Organization).where(Organization.id == org_id))
+        org = org_result.scalar_one_or_none()
+        if not org:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found",
+            )
+
+        assessment_result = await self.db.execute(
+            select(HighRiskAssessment)
+            .where(HighRiskAssessment.ai_system_id == ai_system.id)
+            .order_by(HighRiskAssessment.created_at.desc())
+            .limit(1)
+        )
+        assessment = assessment_result.scalar_one_or_none()
+
         snapshot_service = SnapshotService()
-        manifest = snapshot_service.generate_manifest(version, ai_system)
-        snapshot_hash = snapshot_service.compute_hash_from_manifest(manifest)
+        manifest = snapshot_service.generate_manifest(
+            org=org,
+            version=version,
+            ai_system=ai_system,
+            sections=sections,
+            evidence_items=evidence_items,
+            mappings=mappings,
+            assessment=assessment,
+        )
+        manifest = snapshot_service.finalize_manifest(manifest)
+        snapshot_hash = manifest.snapshot_hash or snapshot_service.compute_hash_from_manifest(manifest)
 
         # Prepare data for DOCX
         system_info = {
@@ -263,7 +291,7 @@ class ExportService:
             {
                 "id": str(e.id),
                 "title": e.title,
-                "type": e.evidence_type,
+                "type": e.type.value,
             }
             for e in evidence_items
         ]
@@ -277,14 +305,17 @@ class ExportService:
         )
 
         # Generate EvidenceIndex.json (sorted)
+        manifest_checksums = {item.id: item.checksum for item in manifest.evidence_index.values()}
         evidence_index = [
             {
                 "id": str(e.id),
                 "title": e.title,
-                "type": e.evidence_type,
+                "type": e.type.value,
                 "description": e.description,
-                "classification": e.classification,
-                "tags": e.tags or [],
+                "classification": e.classification.value,
+                "tags": sorted({t for t in (e.tags or []) if t}),
+                "type_metadata": e.type_metadata or {},
+                "checksum": manifest_checksums.get(str(e.id), ""),
             }
             for e in evidence_items
         ]
@@ -304,10 +335,10 @@ class ExportService:
                 {
                     "id": str(e.id),
                     "title": e.title,
-                    "type": e.evidence_type,
+                    "type": e.type.value,
                     "description": e.description or "",
-                    "classification": e.classification or "",
-                    "tags": ",".join(e.tags or []),
+                    "classification": e.classification.value,
+                    "tags": ",".join(sorted({t for t in (e.tags or []) if t})),
                 }
             )
         evidence_csv = csv_buffer.getvalue()
@@ -342,15 +373,17 @@ class ExportService:
         )
 
         # Generate SystemManifest.json
-        manifest_json = snapshot_service.to_canonical_json(manifest)
+        manifest_json = json.dumps(
+            manifest.to_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        )
 
         # Create ZIP package (sorted entries for determinism)
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:      
             # Add files in sorted order for determinism
             files_to_add = [
                 ("AnnexIV.docx", docx_buffer.getvalue()),
-                ("CompletenessReport.json", completeness_json.encode("utf-8")),
+                ("CompletenessReport.json", completeness_json.encode("utf-8")), 
                 ("EvidenceIndex.csv", evidence_csv.encode("utf-8")),
                 ("EvidenceIndex.json", evidence_json.encode("utf-8")),
                 ("SystemManifest.json", manifest_json.encode("utf-8")),
@@ -363,7 +396,17 @@ class ExportService:
                     diff_data, sort_keys=True, separators=(",", ":"), ensure_ascii=True
                 )
                 files_to_add.append(("DiffReport.json", diff_json.encode("utf-8")))
-                files_to_add.sort(key=lambda x: x[0])
+
+            # Add offline viewer (self-contained HTML; no network fetch)
+            viewer_html = self._generate_export_viewer_html(
+                manifest_json=manifest_json,
+                evidence_json=evidence_json,
+                completeness_json=completeness_json,
+                diff_json=diff_json if include_diff and compare_version_id else None,
+            )
+            files_to_add.append(("viewer/index.html", viewer_html.encode("utf-8")))
+
+            files_to_add.sort(key=lambda x: x[0])
 
             for filename, content in files_to_add:
                 zf.writestr(filename, content)
@@ -422,6 +465,271 @@ class ExportService:
         )
 
         return export_record
+
+    def _generate_export_viewer_html(
+        self,
+        *,
+        manifest_json: str,
+        evidence_json: str,
+        completeness_json: str,
+        diff_json: str | None,
+    ) -> str:
+        def _safe_script_json(raw: str) -> str:
+            # Prevent accidental </script> termination and keep output readable.
+            return raw.replace("</", "<\\/")
+
+        manifest_json_safe = _safe_script_json(manifest_json)
+        evidence_json_safe = _safe_script_json(evidence_json)
+        completeness_json_safe = _safe_script_json(completeness_json)
+        diff_json_safe = _safe_script_json(diff_json) if diff_json else "null"
+
+        manifest_html = html_escape(manifest_json_safe)
+        evidence_html = html_escape(evidence_json_safe)
+        completeness_html = html_escape(completeness_json_safe)
+        diff_html = html_escape(diff_json_safe)
+
+        # Basic, dependency-free viewer (works offline; data is embedded).
+        template = """<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AnnexOps Evidence Pack Viewer</title>
+    <style>
+      :root {{
+        --bg: #0b1020;
+        --panel: #121a33;
+        --muted: #9aa7c7;
+        --text: #eef2ff;
+        --border: rgba(255,255,255,0.10);
+        --accent: #7c3aed;
+        --good: #22c55e;
+        --warn: #f59e0b;
+      }}
+      body {{
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: radial-gradient(1200px 800px at 15% 0%, rgba(124, 58, 237, 0.35), transparent 60%),
+                    radial-gradient(900px 700px at 95% 15%, rgba(34, 197, 94, 0.18), transparent 55%),
+                    var(--bg);
+        color: var(--text);
+      }}
+      a {{ color: #a78bfa; }}
+      .wrap {{ max-width: 1100px; margin: 0 auto; padding: 28px 18px 60px; }}
+      .title {{
+        display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap;
+      }}
+      .title h1 {{ margin: 0; font-size: 22px; letter-spacing: 0.2px; }}
+      .badge {{
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 12px; color: var(--muted);
+        border: 1px solid var(--border); border-radius: 999px;
+        padding: 6px 10px; background: rgba(255,255,255,0.04);
+      }}
+      .grid {{ display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 16px; }}
+      @media (min-width: 960px) {{ .grid {{ grid-template-columns: 1fr 1fr; }} }}
+      .card {{
+        border: 1px solid var(--border);
+        background: rgba(18, 26, 51, 0.75);
+        backdrop-filter: blur(6px);
+        border-radius: 14px;
+        padding: 14px 14px 12px;
+      }}
+      .card h2 {{ margin: 0 0 10px; font-size: 14px; color: var(--muted); font-weight: 600; }}
+      .kv {{ display: grid; grid-template-columns: 170px 1fr; gap: 6px 12px; font-size: 13px; }}
+      .k {{ color: var(--muted); }}
+      .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }}
+      .search {{
+        width: 100%; padding: 10px 12px; border-radius: 10px;
+        border: 1px solid var(--border); background: rgba(0,0,0,0.25);
+        color: var(--text);
+      }}
+      table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+      th, td {{ padding: 10px 8px; border-top: 1px solid var(--border); vertical-align: top; }}
+      th {{ text-align: left; color: var(--muted); font-weight: 600; }}
+      .pill {{
+        display: inline-flex; padding: 2px 8px; border-radius: 999px;
+        border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+        color: var(--muted); font-size: 12px;
+      }}
+      .score {{
+        display: inline-flex; align-items: center; gap: 8px;
+      }}
+      .dot {{
+        width: 10px; height: 10px; border-radius: 999px; display: inline-block;
+      }}
+      .dot.good {{ background: var(--good); }}
+      .dot.warn {{ background: var(--warn); }}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="title">
+        <h1>Evidence Pack Viewer</h1>
+        <span class="badge">AnnexOps export (offline)</span>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>System</h2>
+          <div class="kv" id="system-kv"></div>
+        </div>
+        <div class="card">
+          <h2>Completeness</h2>
+          <div class="kv" id="completeness-kv"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <h2>Sections</h2>
+        <div id="sections"></div>
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <h2>Evidence</h2>
+        <input id="evidence-search" class="search" placeholder="Search title/type/tags…" />
+        <div style="height: 10px;"></div>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 220px;">Title</th>
+                <th style="width: 90px;">Type</th>
+                <th style="width: 120px;">Classification</th>
+                <th>Tags</th>
+              </tr>
+            </thead>
+            <tbody id="evidence-rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <h2>Diff</h2>
+        <div id="diff"></div>
+      </div>
+    </div>
+
+    <script id="annexops-manifest" type="application/json">__ANNEXOPS_MANIFEST__</script>
+    <script id="annexops-evidence" type="application/json">__ANNEXOPS_EVIDENCE__</script>
+    <script id="annexops-completeness" type="application/json">__ANNEXOPS_COMPLETENESS__</script>
+    <script id="annexops-diff" type="application/json">__ANNEXOPS_DIFF__</script>
+    <script>
+      const manifest = JSON.parse(document.getElementById('annexops-manifest').textContent);
+      const evidence = JSON.parse(document.getElementById('annexops-evidence').textContent);
+      const completeness = JSON.parse(document.getElementById('annexops-completeness').textContent);
+      const diff = JSON.parse(document.getElementById('annexops-diff').textContent);
+
+      const systemKv = document.getElementById('system-kv');
+      const completenessKv = document.getElementById('completeness-kv');
+
+      const row = (k, v, mono=false) => `
+        <div class="k">${k}</div>
+        <div class="${mono ? 'mono' : ''}">${v ?? ''}</div>
+      `;
+
+      systemKv.innerHTML = [
+        row('Organization', manifest.org?.name),
+        row('System', manifest.ai_system?.name),
+        row('Version', manifest.system_version?.label),
+        row('Status', manifest.system_version?.status),
+        row('Snapshot Hash', `<span class="mono">${manifest.snapshot_hash || ''}</span>`),
+      ].join('');
+
+      const score = Number(completeness?.overall_score ?? 0);
+      const dotClass = score >= 0.8 ? 'good' : 'warn';
+      completenessKv.innerHTML = [
+        row('Overall Score', `<span class="score"><span class="dot ${dotClass}"></span>${Math.round(score * 100)}%</span>`),
+        row('Generated At', `<span class="mono">${completeness?.generated_at || ''}</span>`),
+      ].join('');
+
+      // Sections list
+      const sectionsRoot = document.getElementById('sections');
+      const sections = manifest.annex_sections || {};
+      const keys = Object.keys(sections).sort();
+      sectionsRoot.innerHTML = `
+        <table>
+          <thead>
+            <tr><th style="width:240px;">Key</th><th>Evidence Refs</th></tr>
+          </thead>
+          <tbody>
+            ${keys.map(k => {
+              const refs = (sections[k].evidence_refs || []).slice().sort();
+              return `<tr>
+                <td class="mono">${k}</td>
+                <td>${refs.length ? refs.map(r => `<span class="pill mono" title="${r}">${r.slice(0, 8)}…</span>`).join(' ') : '<span class="pill">none</span>'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      // Evidence table with search
+      const rowsEl = document.getElementById('evidence-rows');
+      const searchEl = document.getElementById('evidence-search');
+      const renderEvidence = (q) => {
+        const query = (q || '').trim().toLowerCase();
+        const filtered = evidence.filter(e => {
+          if (!query) return true;
+          const hay = [
+            e.title, e.type, e.classification,
+            ...(e.tags || []),
+          ].join(' ').toLowerCase();
+          return hay.includes(query);
+        });
+
+        rowsEl.innerHTML = filtered.map(e => {
+          const tags = (e.tags || []).slice().sort();
+          return `<tr>
+            <td>
+              <div>${e.title || ''}</div>
+              <div class="mono" style="color: var(--muted); margin-top: 4px;">${e.id}</div>
+            </td>
+            <td><span class="pill">${e.type}</span></td>
+            <td><span class="pill">${e.classification}</span></td>
+            <td>${tags.length ? tags.map(t => `<span class="pill">${t}</span>`).join(' ') : '<span class="pill">—</span>'}</td>
+          </tr>`;
+        }).join('');
+      };
+      renderEvidence('');
+      searchEl.addEventListener('input', (ev) => renderEvidence(ev.target.value));
+
+      // Diff
+      const diffEl = document.getElementById('diff');
+      if (!diff || !diff.section_changes) {
+        diffEl.innerHTML = '<span class="pill">No diff included in this export.</span>';
+      } else {
+        const changes = diff.section_changes || [];
+        diffEl.innerHTML = `
+          <div style="color: var(--muted); font-size: 13px; margin-bottom: 10px;">
+            ${changes.length} section change(s)
+          </div>
+          <div style="overflow:auto;">
+            <table>
+              <thead><tr><th style="width:240px;">Section</th><th style="width:120px;">Type</th><th>Details</th></tr></thead>
+              <tbody>
+                ${changes.map(c => `<tr>
+                  <td class="mono">${c.section_key}</td>
+                  <td><span class="pill">${c.change_type}</span></td>
+                  <td class="mono" style="color: var(--muted);">Keys: current=${Object.keys(c.current_content||{}).length}, prev=${Object.keys(c.previous_content||{}).length}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+    </script>
+  </body>
+</html>
+"""
+
+        template = template.replace("{{", "{").replace("}}", "}")
+        return (
+            template.replace("__ANNEXOPS_MANIFEST__", manifest_html)
+            .replace("__ANNEXOPS_EVIDENCE__", evidence_html)
+            .replace("__ANNEXOPS_COMPLETENESS__", completeness_html)
+            .replace("__ANNEXOPS_DIFF__", diff_html)
+        )
 
     async def _generate_diff_report(
         self,

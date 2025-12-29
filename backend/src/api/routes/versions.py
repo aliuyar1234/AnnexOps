@@ -3,11 +3,19 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.api.deps import get_current_user, require_role
 from src.core.database import get_db
+from src.models.ai_system import AISystem
+from src.models.annex_section import AnnexSection
+from src.models.evidence_mapping import EvidenceMapping
 from src.models.enums import UserRole, VersionStatus
+from src.models.high_risk_assessment import HighRiskAssessment
+from src.models.organization import Organization
+from src.models.system_version import SystemVersion
 from src.models.user import User
 from src.schemas.completeness import CompletenessResponse
 from src.schemas.version import (
@@ -273,33 +281,77 @@ async def get_version_manifest(
 ) -> dict:
     """Get the system manifest for a version.
 
-    Returns the complete manifest structure including:
-    - manifest_version: Schema version (currently "1.0")
-    - generated_at: Timestamp when manifest was generated
-    - system: AI system information
-    - version: Version information
-    - sections: Section data (empty for now, Module E)
-    - evidence_index: Evidence items (empty for now, Module D)
+    Returns the canonical manifest structure used as SSOT for exports and
+    reproducibility (Constitution Principle V).
 
-    This manifest structure is used for computing the snapshot hash
-    for reproducibility (Constitution Principle V).
-
-    The snapshot_hash field on the version is NOT set by this endpoint.
-    Hash computation and storage happens during export (Module E).
+    Important: the `snapshot_hash` is computed and returned but NOT persisted to
+    the version by this endpoint. Hash storage happens during export creation.
     """
-    version_service = VersionService(db)
     snapshot_service = SnapshotService()
 
-    # Get the version with scoping
-    version = await version_service.get_by_id(system_id, version_id, current_user.org_id)
+    # Load version + system with org scoping (avoid async lazy loading in routes).
+    version_query = (
+        select(SystemVersion)
+        .join(AISystem, SystemVersion.ai_system_id == AISystem.id)
+        .options(selectinload(SystemVersion.ai_system))
+        .where(
+            SystemVersion.id == version_id,
+            SystemVersion.ai_system_id == system_id,
+            AISystem.org_id == current_user.org_id,
+        )
+    )
+    version_result = await db.execute(version_query)
+    version = version_result.scalar_one_or_none()
+    if not version:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
 
-    # Get the AI system (needed for manifest generation)
     ai_system = version.ai_system
+    if not ai_system:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="System not found")
 
-    # Generate manifest
-    manifest = snapshot_service.generate_manifest(version, ai_system)
+    org_result = await db.execute(select(Organization).where(Organization.id == current_user.org_id))
+    org = org_result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
 
-    # Return as dictionary (will be JSON serialized by FastAPI)
+    sections_result = await db.execute(
+        select(AnnexSection)
+        .where(AnnexSection.version_id == version_id)
+        .order_by(AnnexSection.section_key)
+    )
+    sections = list(sections_result.scalars().all())
+
+    mappings_result = await db.execute(
+        select(EvidenceMapping)
+        .options(selectinload(EvidenceMapping.evidence_item))
+        .where(EvidenceMapping.version_id == version_id)
+    )
+    mappings = list(mappings_result.scalars().all())
+
+    evidence_map = {}
+    for mapping in mappings:
+        if mapping.evidence_item:
+            evidence_map[str(mapping.evidence_item.id)] = mapping.evidence_item
+    evidence_items = sorted(evidence_map.values(), key=lambda e: str(e.id))
+
+    assessment_result = await db.execute(
+        select(HighRiskAssessment)
+        .where(HighRiskAssessment.ai_system_id == ai_system.id)
+        .order_by(HighRiskAssessment.created_at.desc())
+        .limit(1)
+    )
+    assessment = assessment_result.scalar_one_or_none()
+
+    manifest = snapshot_service.generate_manifest(
+        org=org,
+        version=version,
+        ai_system=ai_system,
+        sections=sections,
+        evidence_items=evidence_items,
+        mappings=mappings,
+        assessment=assessment,
+    )
+    manifest = snapshot_service.finalize_manifest(manifest)
     return manifest.to_dict()
 
 

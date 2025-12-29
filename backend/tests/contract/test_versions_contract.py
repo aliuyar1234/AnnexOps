@@ -809,30 +809,43 @@ async def test_get_version_manifest_returns_200_with_manifest_structure(
     assert response.status_code == 200
     data = response.json()
 
-    # Verify manifest structure per SPEC.md Section 7.2
+    # Verify manifest structure (canonical export manifest)
     assert data["manifest_version"] == "1.0"
     assert "generated_at" in data
-    assert "system" in data
-    assert "version" in data
-    assert "sections" in data
+    assert "snapshot_hash" in data
+    assert "org" in data
+    assert "ai_system" in data
+    assert "system_version" in data
+    assert "high_risk_assessment" in data
+    assert "annex_sections" in data
     assert "evidence_index" in data
+    assert "mappings" in data
+
+    # Verify org info
+    assert data["org"]["id"] == str(test_org.id)
+    assert data["org"]["name"] == test_org.name
 
     # Verify system info
-    assert data["system"]["id"] == str(test_ai_system.id)
-    assert data["system"]["name"] == test_ai_system.name
-    assert data["system"]["hr_use_case_type"] == test_ai_system.hr_use_case_type.value
-    assert data["system"]["intended_purpose"] == test_ai_system.intended_purpose
+    assert data["ai_system"]["id"] == str(test_ai_system.id)
+    assert data["ai_system"]["name"] == test_ai_system.name
+    assert data["ai_system"]["hr_use_case_type"] == test_ai_system.hr_use_case_type.value
+    assert data["ai_system"]["intended_purpose"] == test_ai_system.intended_purpose
 
     # Verify version info
-    assert data["version"]["id"] == version_id
-    assert data["version"]["label"] == "1.0.0"
-    assert data["version"]["status"] == "draft"
+    assert data["system_version"]["id"] == version_id
+    assert data["system_version"]["label"] == "1.0.0"
+    assert data["system_version"]["status"] == "draft"
 
-    # Verify sections and evidence_index are lists (empty for now)
-    assert isinstance(data["sections"], list)
-    assert isinstance(data["evidence_index"], list)
-    assert len(data["sections"]) == 0  # Module E
-    assert len(data["evidence_index"]) == 0  # Module D
+    # Version has no content yet => empty maps/lists
+    assert data["high_risk_assessment"] is None
+    assert isinstance(data["annex_sections"], dict)
+    assert isinstance(data["evidence_index"], dict)
+    assert isinstance(data["mappings"], list)
+    assert len(data["annex_sections"]) == 0
+    assert len(data["evidence_index"]) == 0
+    assert len(data["mappings"]) == 0
+    assert isinstance(data["snapshot_hash"], str)
+    assert len(data["snapshot_hash"]) == 64
 
 
 @pytest.mark.asyncio
