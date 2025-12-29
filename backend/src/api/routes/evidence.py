@@ -11,6 +11,7 @@ from src.models.enums import Classification, EvidenceType, UserRole
 from src.models.user import User
 from src.schemas.evidence import (
     CreateEvidenceRequest,
+    DownloadUrlResponse,
     EvidenceDetailResponse,
     EvidenceListResponse,
     EvidenceResponse,
@@ -339,6 +340,50 @@ async def download_evidence(
     download_url = storage_service.generate_download_url(storage_uri, expires_in=3600)
 
     return RedirectResponse(url=download_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get(
+    "/{evidence_id}/download-url",
+    response_model=DownloadUrlResponse,
+    summary="Get presigned download URL for evidence file (JSON)",
+)
+async def get_evidence_download_url(
+    evidence_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.VIEWER)),
+) -> DownloadUrlResponse:
+    """Get a presigned download URL for an evidence file as JSON.
+
+    Only works for upload type evidence.
+    """
+    from fastapi import HTTPException
+
+    service = EvidenceService(db)
+    evidence = await service.get_by_id(evidence_id, current_user.org_id)
+
+    if not evidence:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence not found",
+        )
+
+    if evidence.type != EvidenceType.UPLOAD:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot download {evidence.type.value} type evidence. Only 'upload' type evidence has downloadable files.",
+        )
+
+    storage_uri = evidence.type_metadata.get("storage_uri")
+    if not storage_uri:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Storage URI not found in evidence metadata",
+        )
+
+    storage_service = get_storage_service()
+    download_url = storage_service.generate_download_url(storage_uri, expires_in=3600)
+
+    return DownloadUrlResponse(download_url=download_url, expires_in=3600)
 
 
 @router.patch(

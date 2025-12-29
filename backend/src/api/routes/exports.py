@@ -10,7 +10,12 @@ from src.api.deps import require_role
 from src.core.database import get_db
 from src.models.enums import UserRole
 from src.models.user import User
-from src.schemas.export import CreateExportRequest, ExportListResponse, ExportResponse
+from src.schemas.export import (
+    CreateExportRequest,
+    DownloadUrlResponse,
+    ExportListResponse,
+    ExportResponse,
+)
 from src.services.export_service import ExportService
 
 router = APIRouter()
@@ -168,3 +173,26 @@ async def download_export(
     )
 
     return RedirectResponse(url=download_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get(
+    "/exports/{export_id}/download-url",
+    response_model=DownloadUrlResponse,
+    summary="Get presigned download URL for export (JSON)",
+)
+async def get_export_download_url(
+    export_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.VIEWER)),
+) -> DownloadUrlResponse:
+    """Get a presigned download URL for an export as JSON.
+
+    Useful for browser-based UIs that authenticate via Authorization headers
+    (instead of cookies) and cannot follow 302 redirects without losing auth.
+    """
+    service = ExportService(db)
+    download_url = await service.get_download_url(
+        export_id=export_id,
+        org_id=current_user.org_id,
+    )
+    return DownloadUrlResponse(download_url=download_url, expires_in=3600)

@@ -44,3 +44,10 @@ class ExportListResponse(BaseModel):
     total: int = Field(ge=0)
     limit: int = Field(ge=1, le=1000)
     offset: int = Field(ge=0)
+
+
+class DownloadUrlResponse(BaseModel):
+    """Response model for presigned download URLs."""
+
+    download_url: str
+    expires_in: int = 3600

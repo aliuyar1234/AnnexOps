@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/auth/auth-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { ApiError } from "@/lib/http";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
@@ -87,6 +88,12 @@ export default function LoginPage() {
           <p className="text-xs text-zinc-500">
             Tip: in local dev you can create the first org via the bootstrap token.
           </p>
+          <div className="text-center text-xs text-zinc-500">
+            Got an invite token?{" "}
+            <Link href="/invite" className="underline hover:text-zinc-700">
+              Accept invitation
+            </Link>
+          </div>
         </form>
       </div>
     </AppShell>

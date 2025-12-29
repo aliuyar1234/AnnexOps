@@ -1,13 +1,33 @@
 "use client";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { hasAtLeast } from "@/lib/rbac";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-function NavLink({ href, label }: { href: string; label: string }) {
+function NavLink({
+  href,
+  label,
+  disabled,
+}: {
+  href: string;
+  label: string;
+  disabled?: boolean;
+}) {
   const pathname = usePathname();
-  const active = pathname === href;
+  const isHome = href === "/";
+  const active = isHome
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
+
+  if (disabled) {
+    return (
+      <span className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-zinc-400">
+        {label}
+      </span>
+    );
+  }
   return (
     <Link
       href={href}
@@ -22,6 +42,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { isLoading, user, logout } = useAuth();
+  const isAdmin = hasAtLeast(user?.role, "admin");
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -35,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <NavLink href="/" label="Home" />
               <NavLink href="/systems" label="Systems" />
               <NavLink href="/evidence" label="Evidence" />
+              <NavLink href="/admin" label="Admin" disabled={!isAdmin} />
             </nav>
           </div>
           <div className="flex items-center gap-3">

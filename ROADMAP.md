@@ -13,9 +13,11 @@ Legend:
 
 - [x] M1A.1 Frontend layout: navigation, responsive shell, error boundary
 - [x] M1A.2 Login screen (JWT flow) + logout
-- [ ] M1A.4 RBAC-aware navigation (hide/disable forbidden actions)
-- [ ] M1F.2 Create evidence UI for all types (upload/url/git/ticket/note)
-- [ ] M1G.2 Export UI: create full export / diff export
+- [x] M1A.4 RBAC-aware navigation (hide/disable forbidden actions)
+- [ ] M1C.4 High-risk assessment wizard UI + result view
+- [ ] M1E.3 Autosave + conflict handling (optimistic concurrency)
+- [ ] M1F.3 Upload UX: progress, checksum display, file preview (where safe)
+- [ ] M2.1 Add security headers (CSP, HSTS where applicable, XFO, XCTO, referrer-policy)
 
 ---
 
@@ -34,47 +36,47 @@ Legend:
 ## Milestone M1 — Complete Product Flow in UI (P0)
 
 ### M1A: App Shell + Auth
-- [x] M1A.1 Frontend layout: navigation, responsive shell, error boundary
+- [x] M1A.1 Frontend layout: navigation, responsive shell, error boundary       
 - [x] M1A.2 Login screen (JWT flow) + logout
 - [x] M1A.3 Session handling: refresh + “expired session” UX
-- [ ] M1A.4 RBAC-aware navigation (hide/disable forbidden actions)
+- [x] M1A.4 RBAC-aware navigation (hide/disable forbidden actions)        
 
 ### M1B: Organization + Users
-- [ ] M1B.1 Organization settings page (name, bootstrap hints)
-- [ ] M1B.2 User management UI (list, invite, revoke, role change)
-- [ ] M1B.3 Invitation acceptance UI
+- [x] M1B.1 Organization settings page (name, bootstrap hints)
+- [x] M1B.2 User management UI (list, invite, revoke, role change)
+- [x] M1B.3 Invitation acceptance UI
 
 ### M1C: AI Systems
-- [ ] M1C.1 Systems list + search/filter
-- [ ] M1C.2 Create/edit system forms (all required fields)
-- [ ] M1C.3 System detail page: metadata, attachments
+- [x] M1C.1 Systems list + search/filter
+- [x] M1C.2 Create/edit system forms (all required fields)
+- [x] M1C.3 System detail page: metadata, attachments
 - [ ] M1C.4 High-risk assessment wizard UI + result view
 
 ### M1D: Versions
-- [ ] M1D.1 Versions list per system + create version
-- [ ] M1D.2 Version detail page: status, notes, release date
-- [ ] M1D.3 Workflow actions: draft → review → approved (role-gated)
-- [ ] M1D.4 Version compare UI (diff report rendering)
+- [x] M1D.1 Versions list per system + create version
+- [x] M1D.2 Version detail page: status, notes, release date
+- [x] M1D.3 Workflow actions: draft → review → approved (role-gated)        
+- [x] M1D.4 Version compare UI (diff report rendering)
 
 ### M1E: Annex IV Sections Editor
-- [ ] M1E.1 Sections list with completion indicators
-- [ ] M1E.2 Section editor: schema-driven form UI per section
+- [x] M1E.1 Sections list with completion indicators
+- [x] M1E.2 Section editor: schema-driven form UI per section
 - [ ] M1E.3 Autosave + conflict handling (optimistic concurrency)
 - [ ] M1E.4 Section “review” UX (comments + decision log link)
 
 ### M1F: Evidence Store + Mapping
-- [ ] M1F.1 Evidence list + filters (type, tags, classification)
-- [ ] M1F.2 Create evidence UI for all types (upload/url/git/ticket/note)
-- [ ] M1F.3 Upload UX: progress, checksum display, file preview (where safe)
+- [x] M1F.1 Evidence list + filters (type, tags, classification)
+- [x] M1F.2 Create evidence UI for all types (upload/url/git/ticket/note)       
+- [ ] M1F.3 Upload UX: progress, checksum display, file preview (where safe)    
 - [ ] M1F.4 Evidence detail page + edit metadata/tags
-- [ ] M1F.5 Mapping UI: map evidence → section fields/targets + strength/notes
+- [x] M1F.5 Mapping UI: map evidence → section fields/targets + strength/notes
 - [ ] M1F.6 Mapping overview per version (coverage heatmap)
 
 ### M1G: Completeness + Export
-- [ ] M1G.1 Completeness dashboard UI (scores + prioritized gaps)
-- [ ] M1G.2 Export UI: create full export / diff export
-- [ ] M1G.3 Exports list + download links
-- [ ] M1G.4 Offline viewer UX polishing (search, section drill-down)
+- [x] M1G.1 Completeness dashboard UI (scores + prioritized gaps)
+- [x] M1G.2 Export UI: create full export / diff export
+- [x] M1G.3 Exports list + download links
+- [ ] M1G.4 Offline viewer UX polishing (search, section drill-down)            
 
 ---
 

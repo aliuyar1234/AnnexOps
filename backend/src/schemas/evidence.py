@@ -162,6 +162,13 @@ class UploadUrlResponse(BaseModel):
     expires_in: int = 3600
 
 
+class DownloadUrlResponse(BaseModel):
+    """Response schema for presigned download URL."""
+
+    download_url: str
+    expires_in: int = 3600
+
+
 class EvidenceListResponse(BaseModel):
     """Response schema for evidence list with pagination metadata."""
 
